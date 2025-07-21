@@ -1,98 +1,256 @@
-"use client"
+import { useState, useCallback } from "react"
+import ollamaService from "@/services/ollama-service"
 
-import { useState } from "react"
-import type { Chat, Message } from "@/types/chat"
+export interface Message {
+  id: string
+  role: "user" | "assistant"
+  content: string
+  timestamp: Date
+  isStreaming?: boolean
+}
 
-export function useChat() {
-  const [chats, setChats] = useState<Chat[]>([
-    {
-      id: "1",
-      title: "New Chat",
-      messages: [
-        {
-          id: "demo-1",
-          role: "user",
-          content: "Hello! Can you help me understand how machine learning works?",
-          timestamp: new Date(Date.now() - 300000),
-        },
-        {
-          id: "demo-2",
-          role: "assistant",
-          content:
-            "Hello! I'd be happy to help you understand machine learning. Machine learning is a subset of artificial intelligence (AI) that enables computers to learn and make decisions from data without being explicitly programmed for every task.\n\nHere are the key concepts:\n\n1. **Data**: The foundation of ML - algorithms learn patterns from examples\n2. **Algorithms**: Mathematical models that find patterns in data\n3. **Training**: The process of teaching the algorithm using historical data\n4. **Prediction**: Using the trained model to make decisions on new data\n\nWould you like me to explain any specific aspect in more detail?",
-          timestamp: new Date(Date.now() - 250000),
-        },
-      ],
-      createdAt: new Date(),
-    },
-  ])
-  const [activeChat, setActiveChat] = useState("1")
+export interface Chat {
+  id: string
+  title: string
+  messages: Message[]
+  model: string
+  createdAt: Date
+  updatedAt: Date
+}
 
-  const createNewChat = () => {
+export interface UseChatReturn {
+  chats: Chat[]
+  activeChat: string | null
+  isGenerating: boolean
+  setActiveChat: (chatId: string) => void
+  createNewChat: (options?: { model?: string; title?: string }) => Chat
+  deleteChat: (chatId: string) => void
+  sendMessage: (content: string, model: string) => Promise<void>
+  clearChat: (chatId: string) => void
+  updateChatTitle: (chatId: string, title: string) => void
+  regenerateLastMessage: (model: string) => Promise<void>
+  stopGeneration: () => void
+}
+
+export function useChat(): UseChatReturn {
+  const [chats, setChats] = useState<Chat[]>([])
+  const [activeChat, setActiveChat] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [currentAbortController, setCurrentAbortController] = useState<AbortController | null>(null)
+
+  const generateId = () => Math.random().toString(36).substr(2, 9)
+
+  const createNewChat = useCallback((options?: { model?: string; title?: string }) => {
+    const chatId = generateId()
     const newChat: Chat = {
-      id: Date.now().toString(),
-      title: `Chat ${chats.length + 1}`,
+      id: chatId,
+      title: options?.title || "New Chat",
       messages: [],
+      model: options?.model || "",
       createdAt: new Date(),
+      updatedAt: new Date()
     }
-    setChats([...chats, newChat])
-    setActiveChat(newChat.id)
+
+    setChats(prev => [newChat, ...prev])
+    return newChat
+  }, [])
+
+  const deleteChat = useCallback((chatId: string) => {
+    setChats(prev => prev.filter(chat => chat.id !== chatId))
+    setActiveChat(prev => prev === chatId ? null : prev)
+  }, [])
+
+  const clearChat = useCallback((chatId: string) => {
+    setChats(prev => prev.map(chat => 
+      chat.id === chatId 
+        ? { ...chat, messages: [], updatedAt: new Date() }
+        : chat
+    ))
+  }, [])
+
+  const updateChatTitle = useCallback((chatId: string, title: string) => {
+    setChats(prev => prev.map(chat => 
+      chat.id === chatId 
+        ? { ...chat, title, updatedAt: new Date() }
+        : chat
+    ))
+  }, [])
+
+  const generateTitle = (content: string): string => {
+    // Generate a simple title from the first message
+    const words = content.trim().split(' ').slice(0, 6)
+    return words.join(' ') + (words.length === 6 ? '...' : '')
   }
 
-  const deleteChat = (chatId: string) => {
-    if (chats.length === 1) return
-    const updatedChats = chats.filter((chat) => chat.id !== chatId)
-    setChats(updatedChats)
-    if (activeChat === chatId) {
-      setActiveChat(updatedChats[0].id)
+  const stopGeneration = useCallback(() => {
+    if (currentAbortController) {
+      currentAbortController.abort()
+      setCurrentAbortController(null)
+      setIsGenerating(false)
     }
-  }
+  }, [currentAbortController])
 
-  const sendMessage = (prompt: string) => {
-    if (!prompt.trim()) return
+  const sendMessage = useCallback(async (content: string, model: string) => {
+    if (!content.trim() || !model) return
 
-    const currentChat = chats.find((chat) => chat.id === activeChat)
-    if (!currentChat) return
+    // Stop any ongoing generation
+    stopGeneration()
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
+    let chatId = activeChat
+    let targetChat = chats.find(c => c.id === activeChat)
+
+    // Create new chat if none exists or is selected
+    if (!targetChat) {
+      targetChat = createNewChat({ model, title: generateTitle(content) })
+      chatId = targetChat.id
+      setActiveChat(chatId)
+    }
+
+    const userMessage: Message = {
+      id: generateId(),
       role: "user",
-      content: prompt,
+      content: content.trim(),
+      timestamp: new Date()
+    }
+
+    const assistantMessage: Message = {
+      id: generateId(),
+      role: "assistant",
+      content: "",
       timestamp: new Date(),
+      isStreaming: true
     }
 
-    const updatedChat = {
-      ...currentChat,
-      messages: [...currentChat.messages, newMessage],
+    // Add user message and placeholder assistant message
+    setChats(prev => prev.map(chat => 
+      chat.id === chatId
+        ? {
+            ...chat,
+            messages: [...chat.messages, userMessage, assistantMessage],
+            model,
+            updatedAt: new Date(),
+            title: chat.messages.length === 0 ? generateTitle(content) : chat.title
+          }
+        : chat
+    ))
+
+    setIsGenerating(true)
+
+    try {
+      // Create abort controller for this request
+      const abortController = new AbortController()
+      setCurrentAbortController(abortController)
+
+      let fullResponse = ""
+
+      const response = await ollamaService.generate(
+        {
+          model,
+          prompt: content,
+          stream: true
+        },
+        (token: string) => {
+          // Check if generation was aborted
+          if (abortController.signal.aborted) return
+
+          fullResponse += token
+          
+          // Update the streaming message
+          setChats(prev => prev.map(chat => 
+            chat.id === chatId
+              ? {
+                  ...chat,
+                  messages: chat.messages.map(msg =>
+                    msg.id === assistantMessage.id
+                      ? { ...msg, content: fullResponse }
+                      : msg
+                  ),
+                  updatedAt: new Date()
+                }
+              : chat
+          ))
+        }
+      )
+
+      if (!response.success) {
+        throw new Error(response.error || "Failed to generate response")
+      }
+
+      // Mark streaming as complete
+      setChats(prev => prev.map(chat => 
+        chat.id === chatId
+          ? {
+              ...chat,
+              messages: chat.messages.map(msg =>
+                msg.id === assistantMessage.id
+                  ? { ...msg, content: fullResponse || response.data || "", isStreaming: false }
+                  : msg
+              ),
+              updatedAt: new Date()
+            }
+          : chat
+      ))
+
+    } catch (error) {
+      console.error("Error generating response:", error)
+      
+      // Update message with error
+      setChats(prev => prev.map(chat => 
+        chat.id === chatId
+          ? {
+              ...chat,
+              messages: chat.messages.map(msg =>
+                msg.id === assistantMessage.id
+                  ? { 
+                      ...msg, 
+                      content: "Sorry, I encountered an error while generating a response. Please make sure Ollama is running and try again.",
+                      isStreaming: false
+                    }
+                  : msg
+              ),
+              updatedAt: new Date()
+            }
+          : chat
+      ))
+    } finally {
+      setIsGenerating(false)
+      setCurrentAbortController(null)
     }
+  }, [activeChat, chats, createNewChat, stopGeneration])
 
-    setChats(chats.map((chat) => (chat.id === activeChat ? updatedChat : chat)))
+  const regenerateLastMessage = useCallback(async (model: string) => {
+    const targetChat = chats.find(c => c.id === activeChat)
+    if (!targetChat || targetChat.messages.length < 2) return
 
-    // Simulate AI response
-    setTimeout(() => {
-      const aiResponse: Message = {
-        id: (Date.now() + 1).toString(),
-        role: "assistant",
-        content:
-          "This is a simulated response from the AI model. In a real implementation, this would be the actual model response based on your prompt and the selected model.",
-        timestamp: new Date(),
-      }
+    const messages = [...targetChat.messages]
+    const lastUserMessage = messages[messages.length - 2]
+    
+    if (lastUserMessage?.role !== "user") return
 
-      const finalChat = {
-        ...updatedChat,
-        messages: [...updatedChat.messages, aiResponse],
-      }
+    // Remove the last assistant message
+    const updatedMessages = messages.slice(0, -1)
+    
+    setChats(prev => prev.map(chat => 
+      chat.id === activeChat
+        ? { ...chat, messages: updatedMessages, updatedAt: new Date() }
+        : chat
+    ))
 
-      setChats((prevChats) => prevChats.map((chat) => (chat.id === activeChat ? finalChat : chat)))
-    }, 1000)
-  }
+    // Send the last user message again
+    await sendMessage(lastUserMessage.content, model)
+  }, [activeChat, chats, sendMessage])
 
   return {
     chats,
     activeChat,
+    isGenerating,
     setActiveChat,
     createNewChat,
     deleteChat,
     sendMessage,
+    clearChat,
+    updateChatTitle,
+    regenerateLastMessage,
+    stopGeneration
   }
 }

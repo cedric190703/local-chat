@@ -1,25 +1,29 @@
-import type React from "react"
-import { ScrollArea } from "@/components/ui/scroll-area"
-import { ChatMessages } from "@/components/chat-messages"
-import { PromptInput } from "@/components/prompt-input"
-import { ExternalTools } from "@/components/external-tools"
-import type { Chat, UploadedFile } from "@/types/chat"
+import type React from "react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ChatMessages } from "@/components/chat-messages";
+import { PromptInput } from "@/components/prompt-input";
+import { ExternalTools } from "@/components/external-tools";
+import type { Chat, UploadedFile } from "@/types/chat";
 
 interface MainChatAreaProps {
-  currentChat?: Chat
-  prompt: string
-  onPromptChange: (prompt: string) => void
-  onSendMessage: () => void
-  onEnhancePrompt: () => void
-  isRecording: boolean
-  onToggleRecording: () => void
-  uploadedFiles: UploadedFile[]
-  onRemoveFile: (fileId: string) => void
-  fileInputRef: React.RefObject<HTMLInputElement>
-  isDragOver: boolean
-  onDragOver: (e: React.DragEvent) => void
-  onDragLeave: (e: React.DragEvent) => void
-  onDrop: (e: React.DragEvent) => void
+  currentChat?: Chat;
+  prompt: string;
+  onPromptChange: (prompt: string) => void;
+  onSendMessage: () => void;
+  onEnhancePrompt: () => void;
+  isRecording: boolean;
+  onToggleRecording: () => void;
+  uploadedFiles: UploadedFile[];
+  onRemoveFile: (fileId: string) => void;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  isDragOver: boolean;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  isGenerating?: boolean;
+  onStopGeneration?: () => void;
+  selectedModel?: string;
+  ollamaStatus?: 'checking' | 'connected' | 'disconnected';
 }
 
 export function MainChatArea({
@@ -37,34 +41,53 @@ export function MainChatArea({
   onDragOver,
   onDragLeave,
   onDrop,
+  isGenerating = false,
+  onStopGeneration,
+  selectedModel,
+  ollamaStatus = 'checking'
 }: MainChatAreaProps) {
   return (
-    <div className="flex-1 flex flex-col">
-      {/* Messages */}
-      <ScrollArea className="flex-1 overflow-hidden">
-        <ChatMessages messages={currentChat?.messages || []} />
-      </ScrollArea>
+    <div className="flex flex-col h-screen">
+      {/* Messages Area - Scrollable */}
+      <div className="flex-1 overflow-y-auto bg-background">
+        <ScrollArea className="h-full">
+          <div className="p-1">
+            <ChatMessages messages={currentChat?.messages || []} />
+          </div>
+        </ScrollArea>
+      </div>
 
-      {/* Prompt Input Section */}
-      <div className="p-6 border-t">
-        <PromptInput
-          prompt={prompt}
-          onPromptChange={onPromptChange}
-          onSendMessage={onSendMessage}
-          onEnhancePrompt={onEnhancePrompt}
-          isRecording={isRecording}
-          onToggleRecording={onToggleRecording}
-          uploadedFiles={uploadedFiles}
-          onRemoveFile={onRemoveFile}
-          fileInputRef={fileInputRef}
-          isDragOver={isDragOver}
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-        />
+      {/* Bottom Section - Fixed */}
+      <div className="border-t bg-background">
+        {/* Prompt Input Section */}
+        <div className="p-6">
+          <PromptInput
+            prompt={prompt}
+            onPromptChange={onPromptChange}
+            onSendMessage={onSendMessage}
+            onEnhancePrompt={onEnhancePrompt}
+            isRecording={isRecording}
+            onToggleRecording={onToggleRecording}
+            uploadedFiles={uploadedFiles}
+            onRemoveFile={onRemoveFile}
+            fileInputRef={fileInputRef}
+            isDragOver={isDragOver}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            isGenerating={isGenerating}
+            onStopGeneration={onStopGeneration}
+            selectedModel={selectedModel}
+            ollamaStatus={ollamaStatus}
+            disabled={ollamaStatus !== 'connected' || !selectedModel}
+          />
+        </div>
 
-        <ExternalTools />
+        {/* External Tools Section */}
+        <div className="px-6 pb-24">
+          <ExternalTools />
+        </div>
       </div>
     </div>
-  )
+  );
 }
