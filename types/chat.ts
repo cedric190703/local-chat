@@ -3,6 +3,7 @@ export interface Chat {
   title: string
   messages: Message[]
   createdAt: string
+  updatedAt: string
   model?: string
   parameters?: {
     temperature?: number
@@ -18,6 +19,7 @@ export interface Message {
   role: "system" | "user" | "assistant"
   content: string
   timestamp: string // ISO string for better serialization
+  isStreaming?: boolean
 }
 
 export interface UploadedFile {

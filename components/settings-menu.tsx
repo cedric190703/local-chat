@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { Settings, Sun, Moon, Monitor } from "lucide-react"
+import useMobile from "@/hooks/use-mobile"
+import { cn } from "@/lib/utils"
 
 type Theme = "light" | "dark" | "system"
 
@@ -13,8 +15,13 @@ interface SettingsMenuProps {
 }
 
 export function SettingsMenu({ theme, onThemeChange }: SettingsMenuProps) {
+  const isMobile = useMobile()
+
   return (
-    <div className="fixed bottom-4 left-4">
+    <div className={cn(
+      "",
+      isMobile ? "" : ""
+    )}>
       <TooltipProvider>
         <DropdownMenu>
           <Tooltip>
@@ -27,7 +34,7 @@ export function SettingsMenu({ theme, onThemeChange }: SettingsMenuProps) {
             </TooltipTrigger>
             <TooltipContent>Settings and preferences</TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align="start" className="w-48">
+          <DropdownMenuContent align={isMobile ? "end" : "start"} className="w-48">
             <div className="px-2 py-1.5 text-sm font-medium">Theme</div>
             <DropdownMenuItem onClick={() => onThemeChange("light")} className="flex items-center gap-2">
               <Sun className="h-4 w-4" />

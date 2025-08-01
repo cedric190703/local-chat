@@ -5,7 +5,7 @@ export interface Message {
   id: string
   role: "user" | "assistant"
   content: string
-  timestamp: Date
+  timestamp: string
   isStreaming?: boolean
 }
 
@@ -14,8 +14,8 @@ export interface Chat {
   title: string
   messages: Message[]
   model: string
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
 }
 
 export interface UseChatReturn {
@@ -47,8 +47,8 @@ export function useChat(): UseChatReturn {
       title: options?.title || "New Chat",
       messages: [],
       model: options?.model || "",
-      createdAt: new Date(),
-      updatedAt: new Date()
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     }
 
     setChats(prev => [newChat, ...prev])
@@ -63,7 +63,7 @@ export function useChat(): UseChatReturn {
   const clearChat = useCallback((chatId: string) => {
     setChats(prev => prev.map(chat => 
       chat.id === chatId 
-        ? { ...chat, messages: [], updatedAt: new Date() }
+        ? { ...chat, messages: [], updatedAt: new Date().toISOString() }
         : chat
     ))
   }, [])
@@ -71,7 +71,7 @@ export function useChat(): UseChatReturn {
   const updateChatTitle = useCallback((chatId: string, title: string) => {
     setChats(prev => prev.map(chat => 
       chat.id === chatId 
-        ? { ...chat, title, updatedAt: new Date() }
+        ? { ...chat, title, updatedAt: new Date().toISOString() }
         : chat
     ))
   }, [])
@@ -110,14 +110,14 @@ export function useChat(): UseChatReturn {
       id: generateId(),
       role: "user",
       content: content.trim(),
-      timestamp: new Date()
+      timestamp: new Date().toISOString()
     }
 
     const assistantMessage: Message = {
       id: generateId(),
       role: "assistant",
       content: "",
-      timestamp: new Date(),
+      timestamp: new Date().toISOString(),
       isStreaming: true
     }
 
@@ -128,7 +128,7 @@ export function useChat(): UseChatReturn {
             ...chat,
             messages: [...chat.messages, userMessage, assistantMessage],
             model,
-            updatedAt: new Date(),
+            updatedAt: new Date().toISOString(),
             title: chat.messages.length === 0 ? generateTitle(content) : chat.title
           }
         : chat
@@ -165,7 +165,7 @@ export function useChat(): UseChatReturn {
                       ? { ...msg, content: fullResponse }
                       : msg
                   ),
-                  updatedAt: new Date()
+                  updatedAt: new Date().toISOString()
                 }
               : chat
           ))
@@ -186,7 +186,7 @@ export function useChat(): UseChatReturn {
                   ? { ...msg, content: fullResponse || response.data || "", isStreaming: false }
                   : msg
               ),
-              updatedAt: new Date()
+              updatedAt: new Date().toISOString()
             }
           : chat
       ))
@@ -208,7 +208,7 @@ export function useChat(): UseChatReturn {
                     }
                   : msg
               ),
-              updatedAt: new Date()
+              updatedAt: new Date().toISOString()
             }
           : chat
       ))
@@ -232,7 +232,7 @@ export function useChat(): UseChatReturn {
     
     setChats(prev => prev.map(chat => 
       chat.id === activeChat
-        ? { ...chat, messages: updatedMessages, updatedAt: new Date() }
+        ? { ...chat, messages: updatedMessages, updatedAt: new Date().toISOString() }
         : chat
     ))
 

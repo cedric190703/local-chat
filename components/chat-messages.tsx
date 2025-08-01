@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import Image from "next/image"
 import { Bot, Copy, Check, Edit, Save, X, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types/chat"
@@ -170,9 +171,11 @@ function MarkdownRenderer({ content }: { content: string }) {
           const src = part.match(/\((.*?)\)/)?.[1] || ''
           return (
             <div key={index} className="my-3 rounded-lg overflow-hidden border">
-              <img 
+              <Image 
                 src={src} 
                 alt={altText} 
+                width={500}
+                height={300}
                 className="max-w-full h-auto"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none'
