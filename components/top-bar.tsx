@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, RefreshCw, AlertCircle } from "lucide-react"
+import { PanelLeftOpen, RefreshCw, AlertCircle } from "lucide-react"
 import ollamaService from "@/services/ollama-service"
+import { cn } from "@/lib/utils"
 
 interface ModelInfo {
   name: string
@@ -26,18 +27,14 @@ interface TopBarProps {
   selectedModel: string
   onModelChange: (model: string) => void
   showLeftPanel: boolean
-  showRightPanel: boolean
   onToggleLeftPanel: () => void
-  onToggleRightPanel: () => void
 }
 
 export function TopBar({
   selectedModel,
   onModelChange,
   showLeftPanel,
-  showRightPanel,
   onToggleLeftPanel,
-  onToggleRightPanel,
 }: TopBarProps) {
   const [models, setModels] = useState<ModelInfo[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -49,22 +46,18 @@ export function TopBar({
     setError("")
     
     try {
-      // Check if Ollama is running
       const running = await ollamaService.isOllamaRunning()
       setIsOllamaRunning(running)
       
       if (!running) {
-        setError("Ollama service is not running. Please start Ollama.")
+        setError("Ollama service is not running")
         setModels([])
         return
       }
 
-      // Get available models
       const response = await ollamaService.listModels()
       if (response.success && response.data) {
         setModels(response.data)
-        
-        // If no model is selected and models are available, select the first one
         if (!selectedModel && response.data.length > 0) {
           onModelChange(response.data[0].name)
         }
@@ -90,37 +83,46 @@ export function TopBar({
   }
 
   const getModelDisplayName = (model: ModelInfo): string => {
-    // Extract clean model name (remove tags like :latest)
     const baseName = model.name.split(':')[0]
     return baseName.charAt(0).toUpperCase() + baseName.slice(1)
   }
 
   return (
     <TooltipProvider>
-      <div className="p-4 border-b bg-background">
-        <div className="flex items-center justify-between">
+      <div className="sticky top-0 z-10 p-3 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center justify-between gap-4">
+          {/* Left section */}
           <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              {!showLeftPanel && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button size="sm" variant="ghost" onClick={onToggleLeftPanel}>
-                      <PanelLeftOpen className="h-4 w-4" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Show chat panel</TooltipContent>
-                </Tooltip>
-              )}
-              <h1 className="text-xl font-semibold">Local AI Chat</h1>
-            </div>
+            {!showLeftPanel && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={onToggleLeftPanel}
+                    className="h-8 w-8 hover:bg-primary/10"
+                  >
+                    <PanelLeftOpen className="h-4 w-4 text-primary" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Show sidebar</TooltipContent>
+              </Tooltip>
+            )}
             
-            <div className="flex items-center gap-2">
+            <h1 className="text-lg font-semibold tracking-tight bg-gradient-to-r from-primary to-blue-600 bg-clip-text text-transparent">
+              Local AI Chat
+            </h1>
+          </div>
+
+          {/* Center section - Model selection */}
+          <div className="flex-1 flex justify-center">
+            <div className="flex items-center gap-2 max-w-2xl w-full">
               <Select 
                 value={selectedModel} 
                 onValueChange={onModelChange}
                 disabled={!isOllamaRunning || isLoading}
               >
-                <SelectTrigger className="w-64">
+                <SelectTrigger className="w-full min-w-[240px]">
                   <SelectValue placeholder={
                     isLoading ? "Loading models..." : 
                     !isOllamaRunning ? "Ollama not running" : 
@@ -128,13 +130,13 @@ export function TopBar({
                     "Select a model"
                   } />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[60vh]">
                   {models.map((model) => (
-                    <SelectItem key={model.name} value={model.name}>
+                    <SelectItem key={model.name} value={model.name} className="group">
                       <div className="flex items-center justify-between w-full">
-                        <span>{getModelDisplayName(model)}</span>
+                        <span className="font-medium">{getModelDisplayName(model)}</span>
                         <div className="flex items-center gap-1 ml-2">
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs font-mono">
                             {formatModelSize(model.size)}
                           </Badge>
                           {model.details?.parameter_size && (
@@ -148,74 +150,52 @@ export function TopBar({
                   ))}
                 </SelectContent>
               </Select>
-              
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={loadModels}
-                    disabled={isLoading}
-                  >
-                    <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Refresh models</TooltipContent>
-              </Tooltip>
-              
-              {/* Status indicator */}
-              <div className="flex items-center gap-1">
-                {isOllamaRunning ? (
-                  <div className="h-2 w-2 bg-green-500 rounded-full" />
-                ) : (
-                  <div className="h-2 w-2 bg-red-500 rounded-full" />
-                )}
-                <span className="text-xs text-muted-foreground">
-                  {isOllamaRunning ? 'Connected' : 'Disconnected'}
-                </span>
-              </div>
             </div>
-            
-            {error && (
-              <div className="flex items-center gap-1 text-amber-600">
-                <AlertCircle className="h-4 w-4" />
-                <span className="text-sm">{error}</span>
-              </div>
-            )}
           </div>
-          
-          <div className="flex items-center gap-2">
-            {showLeftPanel && (
+
+          {/* Right section */}
+          <div className="flex items-center gap-3">
+            {/* Refresh button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  onClick={loadModels}
+                  disabled={isLoading}
+                  className="h-8 w-8 hover:bg-primary/10"
+                >
+                  <RefreshCw className={cn(
+                    "h-4 w-4 text-primary",
+                    isLoading && "animate-spin"
+                  )} />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Refresh models</TooltipContent>
+            </Tooltip>
+
+            {/* Status indicator */}
+            <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted">
+              <div className={cn(
+                "h-2 w-2 rounded-full",
+                isOllamaRunning ? "bg-green-500" : "bg-red-500"
+              )} />
+              <span className="text-xs font-medium">
+                {isOllamaRunning ? 'Connected' : 'Disconnected'}
+              </span>
+            </div>
+
+            {/* Error message */}
+            {error && (
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Button size="sm" variant="outline" onClick={onToggleLeftPanel} className="gap-2 bg-transparent">
-                    <PanelLeftClose className="h-4 w-4" />
-                    <span className="hidden sm:inline">Hide Chat Panel</span>
-                  </Button>
+                  <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                    <AlertCircle className="h-4 w-4" />
+                  </div>
                 </TooltipTrigger>
-                <TooltipContent>Hide chat management panel</TooltipContent>
-              </Tooltip>
-            )}
-            {!showRightPanel && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="sm" variant="outline" onClick={onToggleRightPanel} className="gap-2 bg-transparent">
-                    <PanelRightOpen className="h-4 w-4" />
-                    <span className="hidden sm:inline">Show Statistics & Resources</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Show statistics and educational resources panel</TooltipContent>
-              </Tooltip>
-            )}
-            {showRightPanel && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button size="sm" variant="outline" onClick={onToggleRightPanel} className="gap-2 bg-transparent">
-                    <PanelRightClose className="h-4 w-4" />
-                    <span className="hidden sm:inline">Hide Statistics & Resources</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Hide statistics and educational resources panel</TooltipContent>
+                <TooltipContent className="max-w-[300px]" side="bottom">
+                  <p className="text-amber-600 dark:text-amber-400">{error}</p>
+                </TooltipContent>
               </Tooltip>
             )}
           </div>

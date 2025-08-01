@@ -35,4 +35,3 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 *   [TypeScript](https://www.typescriptlang.org/) - Typed JavaScript at Any Scale
 *   [Tailwind CSS](https://tailwindcss.com/) - A utility-first CSS framework
 *   [Ollama](https://ollama.ai/) - Run LLMs locally
-

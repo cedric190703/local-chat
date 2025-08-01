@@ -1,13 +1,17 @@
+"use client"
+
 import React from "react"
-import { Bot, Copy, Check } from "lucide-react"
+import { Bot, Copy, Check, Edit, Save, X, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types/chat"
 
 interface ChatMessagesProps {
   messages: Message[]
+  onEditMessage?: (id: string, newContent: string) => void
+  onResendMessage?: (id: string) => void
 }
 
-// Dracula theme colors for code blocks only
+// Dracula theme colors with enhanced contrast
 const draculaColors = {
   background: "#282a36",
   currentLine: "#44475a",
@@ -22,6 +26,47 @@ const draculaColors = {
   yellow: "#f1fa8c",
 }
 
+// Syntax highlighting function
+const highlightSyntax = (code: string, language: string) => {
+  if (!language || language === 'text') return code
+  
+  const keywords = {
+    javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'default', 'async', 'await', 'try', 'catch', 'throw'],
+    python: ['def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'import', 'from', 'as', 'with', 'lambda'],
+    typescript: ['interface', 'type', 'enum', 'implements', 'extends', 'namespace', 'declare'],
+    html: ['<!DOCTYPE html>', '<html', '<head', '<body', '<div', '<span', '<p', '<a', '<img', '<script', '<style'],
+    css: ['@media', '@keyframes', '@import', '@font-face', 'margin', 'padding', 'color', 'background', 'font-size', 'display', 'position']
+  }
+
+  const langKeywords = keywords[language as keyof typeof keywords] || []
+  
+  return code.split('\n').map((line, i) => {
+    let highlightedLine = line
+    
+    // Highlight keywords
+    langKeywords.forEach(keyword => {
+      const regex = new RegExp(`\\b${keyword}\\b`, 'g')
+      highlightedLine = highlightedLine.replace(regex, `<span style="color: ${draculaColors.pink}">${keyword}</span>`)
+    })
+    
+    // Highlight strings
+    highlightedLine = highlightedLine.replace(/(['"])(.*?)\1/g, `<span style="color: ${draculaColors.green}">$1$2$1</span>`)
+    
+    // Highlight numbers
+    highlightedLine = highlightedLine.replace(/\b(\d+)\b/g, `<span style="color: ${draculaColors.purple}">$1</span>`)
+    
+    // Highlight comments
+    if (language === 'javascript' || language === 'typescript' || language === 'css') {
+      highlightedLine = highlightedLine.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, `<span style="color: ${draculaColors.comment}">$&</span>`)
+    }
+    if (language === 'python') {
+      highlightedLine = highlightedLine.replace(/#.*/g, `<span style="color: ${draculaColors.comment}">$&</span>`)
+    }
+    
+    return highlightedLine
+  }).join('\n')
+}
+
 function MarkdownRenderer({ content }: { content: string }) {
   const [copiedCode, setCopiedCode] = React.useState<string | null>(null)
 
@@ -31,76 +76,85 @@ function MarkdownRenderer({ content }: { content: string }) {
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
-  const parts = content.split(/(```[\s\S]*?```|`[^`]+`)/g)
+  // Enhanced regex to handle markdown features
+  const parts = content.split(/(```[\s\S]*?```|`[^`]+`|!\[.*?\]\(.*?\)|\[.*?\]\(.*?\)|\*\*.*?\*\*|_.*?_|\n- .*?(?=\n)|^\* .*$(?:\n^\* .*$)*)/gm)
   
   return (
     <div className="space-y-3">
-      {parts.map((part, index) => {
+      {parts.filter(part => part && part.trim() !== '').map((part, index) => {
+        // Code blocks
         if (part.startsWith('```') && part.endsWith('```')) {
           const codeContent = part.slice(3, -3)
           const lines = codeContent.split('\n')
           const language = lines[0].trim() || 'text'
           const code = lines.slice(1).join('\n').trim()
           const codeId = `code-${index}`
+          const highlightedCode = highlightSyntax(code, language)
 
           return (
-            <div key={index} className="relative">
+            <div key={index} className="relative group">
               <div 
-                className="rounded-lg border overflow-hidden"
+                className="rounded-lg overflow-hidden shadow-md border"
                 style={{
-                  backgroundColor: draculaColors.currentLine,
+                  backgroundColor: draculaColors.background,
                   borderColor: draculaColors.comment
                 }}
               >
                 <div 
-                  className="flex items-center justify-between px-3 py-2 border-b text-xs"
+                  className="flex items-center justify-between px-4 py-2 border-b"
                   style={{
-                    backgroundColor: draculaColors.background,
+                    backgroundColor: draculaColors.currentLine,
                     borderColor: draculaColors.comment
                   }}
                 >
-                  <span 
-                    className="font-medium"
-                    style={{ color: draculaColors.cyan }}
-                  >
-                    {language}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span 
+                      className="font-mono text-xs font-medium"
+                      style={{ color: draculaColors.cyan }}
+                    >
+                      {language}
+                    </span>
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-6 px-2 hover:text-foreground"
+                    className="h-7 w-7 p-2 hover:bg-background/20"
                     style={{ 
                       color: draculaColors.foreground,
-                      backgroundColor: 'transparent'
                     }}
                     onClick={() => copyCode(code, codeId)}
                   >
                     {copiedCode === codeId ? (
-                      <Check className="h-3 w-3" style={{ color: draculaColors.green }} />
+                      <Check className="h-3.5 w-3.5" style={{ color: draculaColors.green }} />
                     ) : (
-                      <Copy className="h-3 w-3" />
+                      <Copy className="h-3.5 w-3.5" />
                     )}
                   </Button>
                 </div>
                 <pre 
-                  className="p-4 overflow-x-auto text-sm"
-                  style={{ color: draculaColors.foreground }}
+                  className="p-4 overflow-x-auto text-sm leading-relaxed"
+                  style={{ 
+                    backgroundColor: draculaColors.background
+                  }}
                 >
-                  <code className="font-mono">{code}</code>
+                  <code 
+                    className="font-mono"
+                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                  />
                 </pre>
               </div>
             </div>
           )
         }
 
+        // Inline code
         if (part.startsWith('`') && part.endsWith('`')) {
           const inlineCode = part.slice(1, -1)
           return (
             <code
               key={index}
-              className="px-1.5 py-0.5 rounded text-sm font-mono border"
+              className="px-4 py-0.5 rounded-md text-sm font-mono bg-background border"
               style={{
-                backgroundColor: draculaColors.currentLine,
                 color: draculaColors.purple,
                 borderColor: draculaColors.comment
               }}
@@ -110,10 +164,112 @@ function MarkdownRenderer({ content }: { content: string }) {
           )
         }
 
-        // Regular text remains unstyled
+        // Images
+        if (part.startsWith('![')) {
+          const altText = part.match(/!\[(.*?)\]/)?.[1] || ''
+          const src = part.match(/\((.*?)\)/)?.[1] || ''
+          return (
+            <div key={index} className="my-3 rounded-lg overflow-hidden border">
+              <img 
+                src={src} 
+                alt={altText} 
+                className="max-w-full h-auto"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none'
+                }}
+              />
+              {altText && (
+                <div className="text-xs text-center p-2 text-muted-foreground bg-muted">
+                  {altText}
+                </div>
+              )}
+            </div>
+          )
+        }
+
+        // Links
+        if (part.startsWith('[') && part.includes('](')) {
+          const text = part.match(/\[(.*?)\]/)?.[1] || ''
+          const url = part.match(/\((.*?)\)/)?.[1] || ''
+          return (
+            <a 
+              key={index} 
+              href={url} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="text-primary underline hover:text-primary/80"
+            >
+              {text || url}
+            </a>
+          )
+        }
+
+        // Bold text
+        if (part.startsWith('**') && part.endsWith('**')) {
+          const text = part.slice(2, -2)
+          return (
+            <strong key={index} className="font-semibold">
+              {text}
+            </strong>
+          )
+        }
+
+        // Italic text
+        if (part.startsWith('_') && part.endsWith('_')) {
+          const text = part.slice(1, -1)
+          return (
+            <em key={index} className="italic">
+              {text}
+            </em>
+          )
+        }
+
+        // Lists
+        if (part.startsWith('\n- ') || part.startsWith('* ')) {
+          const items = part.split('\n').filter(item => item.trim())
+          return (
+            <ul key={index} className="list-disc pl-5 space-y-1">
+              {items.map((item, i) => (
+                <li key={i} className="text-sm">
+                  {item.replace(/^[-*] /, '')}
+                </li>
+              ))}
+            </ul>
+          )
+        }
+
+        // Arrays (JSON-like)
+        if (part.trim().startsWith('[') && part.trim().endsWith(']')) {
+          try {
+            const array = JSON.parse(part)
+            if (Array.isArray(array)) {
+              return (
+                <div key={index} className="bg-muted/50 p-3 rounded-lg border">
+                  <div className="text-xs font-mono text-muted-foreground mb-1">Array ({array.length} items)</div>
+                  <div className="max-h-60 overflow-y-auto">
+                    {array.map((item, i) => (
+                      <div key={i} className="text-sm p-1.5 border-b last:border-b-0">
+                        {typeof item === 'object' ? JSON.stringify(item) : item.toString()}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            }
+          } catch (e) {
+            // Not a valid JSON array
+          }
+        }
+
+        // Regular text with proper line breaks
         return (
-          <span key={index} className="whitespace-pre-wrap">
-            {part}
+          <span key={index} className="whitespace-pre-wrap text-sm leading-relaxed">
+            {part.split('\n').map((line, i) => (
+              <React.Fragment key={i}>
+                {i > 0 ? <br /> : null}
+                {line}
+              </React.Fragment>
+            ))}
           </span>
         )
       })}
@@ -121,10 +277,35 @@ function MarkdownRenderer({ content }: { content: string }) {
   )
 }
 
-export function ChatMessages({ messages }: ChatMessagesProps) {
+export function ChatMessages({ 
+  messages,
+  onEditMessage,
+  onResendMessage
+}: ChatMessagesProps) {
+  const [editingId, setEditingId] = React.useState<string | null>(null)
+  const [editContent, setEditContent] = React.useState('')
+
+  const handleStartEdit = (message: Message) => {
+    setEditingId(message.id)
+    setEditContent(message.content)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingId(null)
+    setEditContent('')
+  }
+
+  const handleSaveEdit = () => {
+    if (editingId && editContent.trim() && onEditMessage) {
+      onEditMessage(editingId, editContent)
+      setEditingId(null)
+      setEditContent('')
+    }
+  }
+
   if (messages.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground p-6">
+      <div className="flex items-center justify-center h-full text-muted-foreground p-8">
         <div className="text-center">
           <Bot className="h-12 w-12 mx-auto mb-4 opacity-50" />
           <p className="text-lg font-medium mb-2">Start a conversation</p>
@@ -135,43 +316,115 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-4 pb-6">
       {messages.map((message) => (
         <div
           key={message.id}
-          className={`p-6 rounded-xl shadow-sm transition-all duration-200 ${
+          className={`flex gap-4 p-4 rounded-lg transition-all duration-200 ${
             message.role === "user"
-              ? "bg-primary text-primary-foreground ml-16 border border-primary/20"
-              : "bg-muted mr-16 border border-border hover:shadow-md"
+              ? "justify-end"
+              : "justify-start"
           }`}
         >
-          <div className="flex items-center gap-2 mb-4">
-            {message.role === "assistant" && <Bot className="h-5 w-5 text-primary" />}
-            {message.role === "user" && (
-              <div className="h-5 w-5 rounded-full bg-primary-foreground/20 flex items-center justify-center text-xs font-bold">
-                U
+          {message.role === "assistant" && (
+            <div className="flex-shrink-0 mt-1">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Bot className="h-5 w-5 text-primary" />
               </div>
-            )}
-            <div className="text-sm font-medium opacity-90">
-              {message.role === "user" ? "You" : "AI Assistant"}
             </div>
-            <div className="text-xs opacity-60 ml-auto">
-              {message.timestamp.toString().slice(0, 16).replace("T", " ")}
-            </div>
-          </div>
+          )}
           
-          <div className="text-base leading-relaxed">
-            {message.role === "user" ? (
-              <div className="whitespace-pre-wrap font-medium">{message.content}</div>
-            ) : (
-              <div className="prose prose-sm max-w-none dark:prose-invert">
-                <MarkdownRenderer content={message.content} />
-                {message.isStreaming && (
-                  <span className="inline-block w-2 h-4 bg-current ml-1 animate-pulse" />
-                )}
+          <div className={`flex-1 max-w-3xl rounded-xl p-4 relative group ${
+            message.role === "user"
+              ? "bg-primary/5 border border-primary/20 hover:border-primary/30"
+              : "bg-muted/50 border border-border hover:shadow-sm"
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="text-sm font-medium">
+                {message.role === "user" ? "You" : "AI Assistant"}
               </div>
-            )}
+              <div className="text-xs text-muted-foreground ml-auto">
+                {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </div>
+              {message.role === "user" && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={() => handleStartEdit(message)}
+                >
+                  <Edit className="h-3.5 w-3.5" />
+                </Button>
+              )}
+            </div>
+            
+            <div className="text-base leading-relaxed">
+              {message.role === "user" ? (
+                editingId === message.id ? (
+                  <div className="space-y-3">
+                    <textarea
+                      value={editContent}
+                      onChange={(e) => setEditContent(e.target.value)}
+                      className="w-full p-3 border rounded-lg bg-background min-h-[100px] text-sm"
+                      autoFocus
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleCancelEdit}
+                        className="gap-1"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                        Cancel
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        onClick={handleSaveEdit}
+                        className="gap-1"
+                      >
+                        <Save className="h-3.5 w-3.5" />
+                        Save
+                      </Button>
+                      {onResendMessage && (
+                        <Button 
+                          size="sm" 
+                          variant="secondary"
+                          onClick={() => {
+                            handleSaveEdit()
+                            onResendMessage(message.id)
+                          }}
+                          className="gap-1"
+                        >
+                          <Save className="h-3.5 w-3.5" />
+                          Save & Resend
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap">
+                    {message.content}
+                  </div>
+                )
+              ) : (
+                <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0">
+                  <MarkdownRenderer content={message.content} />
+                  {message.isStreaming && (
+                    <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
+                  )}
+                </div>
+              )}
+            </div>
           </div>
+
+          {message.role === "user" && (
+            <div className="flex-shrink-0 mt-1">
+              <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+            </div>
+          )}
         </div>
       ))}
     </div>

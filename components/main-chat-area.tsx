@@ -10,6 +10,8 @@ interface MainChatAreaProps {
   prompt: string;
   onPromptChange: (prompt: string) => void;
   onSendMessage: () => void;
+  onEditMessage: (messageId: string) => void;
+  onResendMessage: (messageId: string) => void;
   onEnhancePrompt: () => void;
   isRecording: boolean;
   onToggleRecording: () => void;
@@ -31,6 +33,8 @@ export function MainChatArea({
   prompt,
   onPromptChange,
   onSendMessage,
+  onEditMessage,
+  onResendMessage,
   onEnhancePrompt,
   isRecording,
   onToggleRecording,
@@ -47,12 +51,16 @@ export function MainChatArea({
   ollamaStatus = 'checking'
 }: MainChatAreaProps) {
   return (
-    <div className="flex flex-col h-screen">
+    <div className="flex flex-col h-full">
       {/* Messages Area - Scrollable */}
       <div className="flex-1 overflow-y-auto bg-background">
         <ScrollArea className="h-full">
           <div className="p-1">
-            <ChatMessages messages={currentChat?.messages || []} />
+            <ChatMessages
+            messages={currentChat?.messages || []}
+            onEditMessage={onEditMessage}
+            onResendMessage={onResendMessage}
+            />
           </div>
         </ScrollArea>
       </div>

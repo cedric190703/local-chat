@@ -1,42 +1,42 @@
-import type React from "react"
-import { useState, useRef, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import type React from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  Send, 
-  Square, 
-  Mic, 
-  MicOff, 
-  Sparkles, 
-  Upload, 
-  X, 
+  Send,
+  Square,
+  Mic,
+  MicOff,
+  Sparkles,
+  Upload,
+  X,
   AlertCircle,
   Loader2
-} from "lucide-react"
-import type { UploadedFile } from "@/types/chat"
+} from "lucide-react";
+import type { UploadedFile } from "@/types/chat";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface PromptInputProps {
-  prompt: string
-  onPromptChange: (prompt: string) => void
-  onSendMessage: () => void
-  onEnhancePrompt: () => void
-  isRecording: boolean
-  onToggleRecording: () => void
-  uploadedFiles: UploadedFile[]
-  onRemoveFile: (fileId: string) => void
-  fileInputRef: React.RefObject<HTMLInputElement>
-  isDragOver: boolean
-  onDragOver: (e: React.DragEvent) => void
-  onDragLeave: (e: React.DragEvent) => void
-  onDrop: (e: React.DragEvent) => void
-  isGenerating?: boolean
-  onStopGeneration?: () => void
-  selectedModel?: string
-  ollamaStatus?: 'checking' | 'connected' | 'disconnected'
-  disabled?: boolean
+  prompt: string;
+  onPromptChange: (prompt: string) => void;
+  onSendMessage: () => void;
+  onEnhancePrompt: () => void;
+  isRecording: boolean;
+  onToggleRecording: () => void;
+  uploadedFiles: UploadedFile[];
+  onRemoveFile: (fileId: string) => void;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  isDragOver: boolean;
+  onDragOver: (e: React.DragEvent) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent) => void;
+  isGenerating?: boolean;
+  onStopGeneration?: () => void;
+  selectedModel?: string;
+  ollamaStatus?: 'checking' | 'connected' | 'disconnected';
+  disabled?: boolean;
 }
 
 export function PromptInput({
@@ -63,28 +63,38 @@ export function PromptInput({
   const [isFocused, setIsFocused] = useState(false);
   const [isEnhancing, setIsEnhancing] = useState(false);
 
-  // Auto-resize textarea
+  // Auto-resize textarea and maintain focus
   useEffect(() => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Save current cursor position
+    const cursorPosition = textarea.selectionStart;
+
+    // Adjust height
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+
+    // Restore cursor position if content changed programmatically
+    if (textarea.selectionStart !== cursorPosition) {
+      textarea.setSelectionRange(cursorPosition, cursorPosition);
     }
   }, [prompt]);
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       if (!disabled && !isGenerating && !isEnhancing && prompt.trim()) {
         onSendMessage();
       }
     }
-  };
+  }, [disabled, isGenerating, isEnhancing, onSendMessage, prompt]);
 
-  const handleUploadClick = () => {
+  const handleUploadClick = useCallback(() => {
     fileInputRef.current?.click();
-  };
+  }, [fileInputRef]);
 
-  const handleEnhancePrompt = async () => {
+  const handleEnhancePrompt = useCallback(async () => {
     if (!prompt.trim() || !selectedModel || isEnhancing) return;
     
     setIsEnhancing(true);
@@ -92,8 +102,18 @@ export function PromptInput({
       await onEnhancePrompt();
     } finally {
       setIsEnhancing(false);
+      // Restore focus to textarea after enhancement
+      setTimeout(() => textareaRef.current?.focus(), 0);
     }
-  };
+  }, [prompt, selectedModel, isEnhancing, onEnhancePrompt]);
+
+  const handleFocus = useCallback(() => {
+    setIsFocused(true);
+  }, []);
+
+  const handleBlur = useCallback(() => {
+    setIsFocused(false);
+  }, []);
 
   const canSend = !disabled && !isGenerating && !isEnhancing && prompt.trim() && selectedModel;
   const showStopButton = isGenerating && onStopGeneration;
@@ -108,17 +128,17 @@ export function PromptInput({
             <Badge
               key={file.id}
               variant="secondary"
-              className="flex items-center gap-2 py-1 px-2"
+              className="flex items-center gap-2 py-1 px-2 rounded-full"
             >
-              <span className="text-xs truncate max-w-32">{file.name}</span>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-4 w-4 p-0 hover:bg-destructive hover:text-destructive-foreground"
+              <span className="text-xs truncate max-w-[120px]">{file.name}</span>
+              <button
+                type="button"
+                className="h-4 w-4 p-0 rounded-full flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
                 onClick={() => onRemoveFile(file.id)}
+                aria-label={`Remove ${file.name}`}
               >
                 <X className="h-3 w-3" />
-              </Button>
+              </button>
             </Badge>
           ))}
         </div>
@@ -126,28 +146,28 @@ export function PromptInput({
 
       {/* Status Messages */}
       {ollamaStatus === 'disconnected' && (
-        <div className="flex items-center gap-2 text-amber-600 text-sm">
-          <AlertCircle className="h-4 w-4" />
+        <div className="flex items-center gap-2 text-amber-600 text-sm px-2 py-1.5 bg-amber-50 rounded-lg">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>Ollama is not running. Please start Ollama to use the chat.</span>
         </div>
       )}
 
       {ollamaStatus === 'connected' && !selectedModel && (
-        <div className="flex items-center gap-2 text-amber-600 text-sm">
-          <AlertCircle className="h-4 w-4" />
+        <div className="flex items-center gap-2 text-amber-600 text-sm px-2 py-1.5 bg-amber-50 rounded-lg">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
           <span>Please select a model to start chatting.</span>
         </div>
       )}
 
       {/* Main Input Area */}
       <div
-        className={`relative rounded-xl border transition-all duration-200 ${
+        className={`relative rounded-xl border transition-all duration-200 bg-background ${
           isDragOver
-            ? 'border-primary bg-primary/5'
+            ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
             : isFocused
             ? 'border-primary shadow-lg'
             : 'border-border'
-        } ${disabled ? 'opacity-60' : ''}`}
+        } ${disabled ? 'opacity-60 cursor-not-allowed' : ''}`}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
         onDrop={onDrop}
@@ -158,7 +178,7 @@ export function PromptInput({
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 flex items-center justify-center bg-background/80 z-10 rounded-xl"
+              className="absolute inset-0 flex items-center justify-center bg-background/90 z-10 rounded-xl backdrop-blur-sm"
             >
               <div className="flex items-center gap-2">
                 <motion.div
@@ -185,8 +205,8 @@ export function PromptInput({
           value={prompt}
           onChange={(e) => onPromptChange(e.target.value)}
           onKeyDown={handleKeyDown}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
           placeholder={
             disabled 
               ? ollamaStatus === 'disconnected' 
@@ -194,26 +214,32 @@ export function PromptInput({
                 : "Select a model to start..."
               : "Type your message... (Enter to send, Shift+Enter for new line)"
           }
-          className="min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pr-32"
+          className="min-h-[60px] max-h-[200px] resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pr-32 bg-transparent"
           disabled={isInputDisabled}
+          aria-label="Chat message input"
         />
 
         {/* Action Buttons */}
-        <div className="absolute bottom-3 right-3 flex items-center gap-2">
+        <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
           {/* Recording Button */}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 size="sm"
                 variant={isRecording ? "default" : "ghost"}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 rounded-lg"
                 onClick={onToggleRecording}
                 disabled={isInputDisabled}
+                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
               >
-                {isRecording ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                {isRecording ? (
+                  <Mic className="h-4 w-4" />
+                ) : (
+                  <MicOff className="h-4 w-4" />
+                )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="top">
               {isRecording ? 'Stop recording' : 'Start voice recording'}
             </TooltipContent>
           </Tooltip>
@@ -224,14 +250,15 @@ export function PromptInput({
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 rounded-lg"
                 onClick={handleUploadClick}
                 disabled={isInputDisabled}
+                aria-label="Upload files"
               >
                 <Upload className="h-4 w-4" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Upload files</TooltipContent>
+            <TooltipContent side="top">Upload files</TooltipContent>
           </Tooltip>
 
           {/* Enhance Button */}
@@ -240,9 +267,10 @@ export function PromptInput({
               <Button
                 size="sm"
                 variant={isEnhancing ? "default" : "ghost"}
-                className="h-8 w-8 p-0"
+                className="h-8 w-8 p-0 rounded-lg"
                 onClick={handleEnhancePrompt}
                 disabled={isInputDisabled || !prompt.trim() || isEnhancing}
+                aria-label="Enhance prompt"
               >
                 {isEnhancing ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
@@ -251,7 +279,7 @@ export function PromptInput({
                 )}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="top">
               {isEnhancing ? 'Enhancing...' : 'Enhance prompt'}
             </TooltipContent>
           </Tooltip>
@@ -263,22 +291,26 @@ export function PromptInput({
                 <Button
                   size="sm"
                   variant="destructive"
-                  className="h-8 w-8 p-0"
+                  className="h-8 w-8 p-0 rounded-lg"
                   onClick={onStopGeneration}
+                  aria-label="Stop generation"
                 >
                   <Square className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Stop generation</TooltipContent>
+              <TooltipContent side="top">Stop generation</TooltipContent>
             </Tooltip>
           ) : (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   size="sm"
-                  className="h-8 w-8 p-0"
+                  className={`h-8 w-8 p-0 rounded-lg transition-all ${
+                    canSend ? 'bg-primary hover:bg-primary/90' : 'bg-muted'
+                  }`}
                   onClick={onSendMessage}
                   disabled={!canSend}
+                  aria-label="Send message"
                 >
                   {ollamaStatus === 'checking' ? (
                     <Loader2 className="h-4 w-4 animate-spin" />
@@ -287,7 +319,7 @@ export function PromptInput({
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
+              <TooltipContent side="top">
                 {!canSend
                   ? disabled
                     ? 'Not available'
@@ -304,36 +336,45 @@ export function PromptInput({
       </div>
 
       {/* Status Bar */}
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs text-muted-foreground">
+        <div className="flex items-center gap-3 flex-wrap">
           {selectedModel && (
-            <span>Model: {selectedModel}</span>
+            <span className="bg-muted px-2 py-1 rounded-md">Model: {selectedModel}</span>
           )}
           {ollamaStatus === 'connected' && (
-            <span className="text-green-600">● Connected</span>
+            <span className="text-green-600 flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-green-500" />
+              Connected
+            </span>
           )}
           {ollamaStatus === 'disconnected' && (
-            <span className="text-red-600">● Disconnected</span>
+            <span className="text-red-600 flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-red-500" />
+              Disconnected
+            </span>
           )}
           {ollamaStatus === 'checking' && (
-            <span className="text-amber-600">● Checking...</span>
+            <span className="text-amber-600 flex items-center gap-1">
+              <span className="h-2 w-2 rounded-full bg-amber-500" />
+              Checking...
+            </span>
           )}
         </div>
         
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           {isGenerating && (
-            <span className="text-blue-600 flex items-center gap-1">
+            <span className="text-blue-600 flex items-center gap-1 bg-blue-50 px-2 py-1 rounded-md">
               <Loader2 className="h-3 w-3 animate-spin" />
               Generating...
             </span>
           )}
           {isEnhancing && (
-            <span className="text-purple-600 flex items-center gap-1">
+            <span className="text-purple-600 flex items-center gap-1 bg-purple-50 px-2 py-1 rounded-md">
               <Sparkles className="h-3 w-3" />
               Enhancing...
             </span>
           )}
-          <span>{prompt.length} characters</span>
+          <span className="bg-muted px-2 py-1 rounded-md">{prompt.length} characters</span>
         </div>
       </div>
     </div>

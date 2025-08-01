@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { MainChatArea } from "@/components/main-chat-area"
-import { StatsSidebar } from "@/components/stats-sidebar"
 import { SettingsMenu } from "@/components/settings-menu"
 import { TopBar } from "@/components/top-bar"
 import { useChat } from "@/hooks/use-chat"
@@ -14,6 +13,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ollamaService from "@/services/ollama-service"
+import type { Message } from "@/types/chat"
+import { Menu } from "lucide-react"
 
 export default function LLMInterface() {
   const [selectedModel, setSelectedModel] = useState("")
@@ -46,6 +47,31 @@ export default function LLMInterface() {
     removeFile,
   } = useFileUpload()
 
+  const [messages, setMessages] = useState<Message[]>([])
+
+  const handleEditMessage = (id: string, newContent: string) => {
+    setMessages(prev => {
+      const index = prev.findIndex(m => m.id === id)
+      if (index === -1) return prev
+      
+      // Update the edited message, keep previous messages, remove all after
+      const updated = [...prev.slice(0, index + 1)]
+      updated[index] = { ...updated[index], content: newContent }
+      return updated
+    })
+  }
+
+  const handleResendMessage = (id: string) => {
+    const message = messages.find(m => m.id === id)
+    if (!message) return
+    
+    // Remove all messages after the resent one
+    setMessages(prev => prev.slice(0, prev.findIndex(m => m.id === id) + 1))
+    
+    // Resend the message
+    sendMessage(message.content, selectedModel)
+  }
+  
   // Check Ollama connection on mount
   useEffect(() => {
     const checkOllama = async () => {
@@ -121,9 +147,20 @@ export default function LLMInterface() {
   return (
     <TooltipProvider>
       <div className="flex h-screen bg-background overflow-hidden">
+        {/* Show sidebar button when hidden */}
+        {!showLeftPanel && (
+          <Button 
+            onClick={() => setShowLeftPanel(true)}
+            className="fixed left-0 top-4 z-10 rounded-l-none h-10 w-6 p-0"
+            variant="outline"
+          >
+            <Menu className="h-4 w-4" />
+          </Button>
+        )}
+
         {/* Ollama Setup Alert */}
         {showOllamaSetup && ollamaStatus === 'disconnected' && (
-          <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-96">
+          <div className="fixed top-4 transform -translate-x-1/2 z-50 w-96">
             <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800 dark:text-amber-200">
@@ -164,11 +201,12 @@ export default function LLMInterface() {
             onChatSelect={setActiveChat}
             onCreateChat={createNewChat}
             onDeleteChat={deleteChat}
+            onToggle={() => setShowLeftPanel(false)}
           />
         )}
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col">
+        <div className="flex flex-col flex-1">
           {/* Top Bar */}
           <TopBar
             selectedModel={selectedModel}
@@ -179,13 +217,15 @@ export default function LLMInterface() {
             onToggleRightPanel={() => setShowRightPanel(!showRightPanel)}
           />
 
-          <div className="flex-1 flex">
+          <div className="flex-1 overflow-y-auto">
             {/* Chat Area */}
             <MainChatArea
               currentChat={currentChat}
               prompt={prompt}
               onPromptChange={setPrompt}
               onSendMessage={handleSendMessage}
+              onEditMessage={handleEditMessage}
+              onResendMessage={handleResendMessage}
               onEnhancePrompt={enhancePrompt}
               isRecording={isRecording}
               onToggleRecording={toggleRecording}
@@ -201,20 +241,6 @@ export default function LLMInterface() {
               selectedModel={selectedModel}
               ollamaStatus={ollamaStatus}
             />
-
-            {/* Right Sidebar */}
-            {showRightPanel && (
-              <StatsSidebar
-                prompt={prompt}
-                isDragOver={isDragOver}
-                onDragOver={handleDragOverFile}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-                fileInputRef={fileInputRef}
-                currentChat={currentChat}
-                ollamaStatus={ollamaStatus}
-              />
-            )}
           </div>
         </div>
 
