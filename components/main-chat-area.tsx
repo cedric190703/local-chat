@@ -63,7 +63,6 @@ export function MainChatArea({
               messages={currentChat?.messages || []}
               onEditMessage={onEditMessage}
               onResendMessage={onResendMessage}
-              onEditAIMessage={onEditAIMessage}
             />
           </div>
         </ScrollArea>
