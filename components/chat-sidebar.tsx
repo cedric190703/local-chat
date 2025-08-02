@@ -42,7 +42,6 @@ export function ChatSidebar({
               Conversations
             </span>
           </h2>
-          <SidebarTrigger />
         </div>
 
         <div className="px-4 pt-3 pb-2">

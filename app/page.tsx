@@ -121,87 +121,88 @@ export default function LLMInterface() {
   return (
     <TooltipProvider>
       <div className="flex h-screen bg-background overflow-hidden">
+        {/* Alerte Ollama */}
         {showOllamaSetup && ollamaStatus === 'disconnected' && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md p-4">
             <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
               <AlertCircle className="h-4 w-4 text-amber-600" />
               <AlertDescription className="text-amber-800 dark:text-amber-200">
                 <div className="space-y-2">
-                      <p className="font-medium">Ollama is not running</p>
-                      <p className="text-sm">To use this local AI interface, you need to install and run Ollama.</p>
-                      <div className="flex gap-2 mt-3">
-                        <Button size="sm" variant="outline" onClick={() => setShowOllamaSetup(false)}>
-                          Dismiss
-                        </Button>
-                        <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer">
-                          <Button size="sm">Get Ollama</Button>
-                        </a>
-                      </div>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-              </div>
-            )}
-
-            <Sidebar variant="inset">
-              <ChatSidebar
-                chats={chats}
-                activeChat={activeChat || ""}
-                onChatSelect={(id) => {
-                  setActiveChat(id)
-                }}
-                onCreateChat={() => {
-                  createNewChat()
-                }}
-                onDeleteChat={deleteChat}
-                theme={theme}
-                onThemeChange={setTheme}
-              />
-            </Sidebar>
-
-            <SidebarInset>
-              <TopBar
-                selectedModel={selectedModel}
-                onModelChange={setSelectedModel}
-                onToggleLeftPanel={toggleSidebar}
-              />
-
-              <div className="flex-1 overflow-y-auto">
-                <MainChatArea
-                  currentChat={currentChat}
-                  prompt={prompt}
-                  onPromptChange={setPrompt}
-                  onSendMessage={handleSendMessage}
-                  onEditMessage={handleEditMessage}
-                  onResendMessage={handleResendMessage}
-                  onEnhancePrompt={enhancePrompt}
-                  isRecording={isRecording}
-                  onToggleRecording={() => setIsRecording(!isRecording)}
-                  uploadedFiles={uploadedFiles}
-                  onRemoveFile={removeFile}
-                  fileInputRef={fileInputRef}
-                  isDragOver={isDragOver}
-                  onDragOver={handleDragOverFile}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
-                  isGenerating={isGenerating}
-                  onStopGeneration={stopGeneration}
-                  selectedModel={selectedModel}
-                  ollamaStatus={ollamaStatus}
-                />
-              </div>
-              
-            </SidebarInset>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              multiple
-              className="hidden"
-              onChange={(e) => handleFileUpload(e.target.files)}
-              accept="image/*,.pdf,.doc,.docx,.txt"
-            />
+                  <p className="font-medium">Ollama is not running</p>
+                  <p className="text-sm">To use this local AI interface, you need to install and run Ollama.</p>
+                  <div className="flex gap-2 mt-3">
+                    <Button size="sm" variant="outline" onClick={() => setShowOllamaSetup(false)}>
+                      Dismiss
+                    </Button>
+                    <a href="https://ollama.ai" target="_blank" rel="noopener noreferrer">
+                      <Button size="sm">Get Ollama</Button>
+                    </a>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
           </div>
+        )}
+
+        {/* Sidebar */}
+        <Sidebar variant="inset">
+          <ChatSidebar
+            chats={chats}
+            activeChat={activeChat || ""}
+            onChatSelect={setActiveChat}
+            onCreateChat={createNewChat}
+            onDeleteChat={deleteChat}
+            theme={theme}
+            onThemeChange={setTheme}
+          />
+        </Sidebar>
+
+        {/* Zone décalée : TopBar + MainChatArea */}
+        <SidebarInset>
+          <div className="flex flex-col h-full">
+            <TopBar
+              selectedModel={selectedModel}
+              onModelChange={setSelectedModel}
+              onToggleLeftPanel={toggleSidebar}
+            />
+
+            <div className="flex-1 overflow-y-auto">
+              <MainChatArea
+                currentChat={currentChat}
+                prompt={prompt}
+                onPromptChange={setPrompt}
+                onSendMessage={handleSendMessage}
+                onEditMessage={handleEditMessage}
+                onResendMessage={handleResendMessage}
+                onEnhancePrompt={enhancePrompt}
+                isRecording={isRecording}
+                onToggleRecording={() => setIsRecording(!isRecording)}
+                uploadedFiles={uploadedFiles}
+                onRemoveFile={removeFile}
+                fileInputRef={fileInputRef}
+                isDragOver={isDragOver}
+                onDragOver={handleDragOverFile}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                isGenerating={isGenerating}
+                onStopGeneration={stopGeneration}
+                selectedModel={selectedModel}
+                ollamaStatus={ollamaStatus}
+              />
+            </div>
+          </div>
+        </SidebarInset>
+
+        {/* Fichier upload */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          multiple
+          className="hidden"
+          onChange={(e) => handleFileUpload(e.target.files)}
+          accept="image/*,.pdf,.doc,.docx,.txt"
+        />
+      </div>
     </TooltipProvider>
   )
 }

@@ -7,9 +7,6 @@ import { Zap } from "lucide-react"
 
 const externalTools = [
   { id: "web-search", name: "Web Search", description: "Search the web for current information", icon: "🌐" },
-  { id: "code-interpreter", name: "Code Interpreter", description: "Execute and analyze code", icon: "💻" },
-  { id: "image-generator", name: "Image Generator", description: "Generate images from text", icon: "🎨" },
-  { id: "pdf-reader", name: "PDF Reader", description: "Extract and analyze PDF content", icon: "📄" },
   { id: "mcp", name: "MCP", description: "Model Context Protocol integration", icon: "🔗", isBeta: true },
 ]
 
