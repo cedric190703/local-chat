@@ -1,9 +1,11 @@
 "use client"
 
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
 import { Zap } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 const externalTools = [
   { id: "web-search", name: "Web Search", description: "Search the web for current information", icon: "🌐" },
@@ -11,12 +13,16 @@ const externalTools = [
 ]
 
 export function ExternalTools() {
+  const [selectedTool, setSelectedTool] = useState<string | null>(null)
+
   const handleToolClick = (toolId: string) => {
     if (toolId === "mcp") {
       alert("MCP (Model Context Protocol) is currently in beta and not yet implemented.")
       return
     }
-    console.log(`Tool clicked: ${toolId}`)
+    
+    // Toggle selection
+    setSelectedTool(selectedTool === toolId ? null : toolId)
   }
 
   return (
@@ -30,7 +36,15 @@ export function ExternalTools() {
           {externalTools.map((tool) => (
             <Tooltip key={tool.id}>
               <TooltipTrigger asChild>
-                <Button size="sm" variant="outline" onClick={() => handleToolClick(tool.id)} className="relative">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => handleToolClick(tool.id)}
+                  className={cn(
+                    "relative transition-all",
+                    selectedTool === tool.id && "bg-primary/10 border-primary text-primary"
+                  )}
+                >
                   <span className="mr-2">{tool.icon}</span>
                   {tool.name}
                   {tool.isBeta && (

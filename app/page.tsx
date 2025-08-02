@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ollamaService from "@/services/ollama-service"
-import type { Message, Chat } from "@/types/chat"
+import type { Message } from "@/types/chat"
 import { useMediaQuery } from "@/hooks/use-mobile"
 import { Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"
 
@@ -117,6 +117,7 @@ export default function LLMInterface() {
   const currentChat = chats.find((chat) => chat.id === activeChat)
 
   const { toggleSidebar } = useSidebar()
+  const [isSidebarHidden, setIsSidebarHidden] = useState(false)
 
   return (
     <TooltipProvider>
@@ -164,6 +165,8 @@ export default function LLMInterface() {
               selectedModel={selectedModel}
               onModelChange={setSelectedModel}
               onToggleLeftPanel={toggleSidebar}
+              sidebarIsHidden={isSidebarHidden}
+              setIsSidebarHidden={setIsSidebarHidden}
             />
 
             <div className="flex-1 overflow-y-auto">
@@ -192,6 +195,7 @@ export default function LLMInterface() {
             </div>
           </div>
         </SidebarInset>
+
 
         {/* Fichier upload */}
         <input

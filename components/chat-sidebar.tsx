@@ -7,9 +7,8 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { MessageSquare, X, Plus } from "lucide-react"
 import type { Chat } from "@/types/chat"
 import { cn } from "@/lib/utils"
-import { Sidebar, SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
+import { Sidebar, useSidebar } from "@/components/ui/sidebar"
 import { SettingsMenu } from "@/components/settings-menu"
-import { useTheme } from "@/hooks/use-theme"
 
 interface ChatSidebarProps {
   chats: Chat[]

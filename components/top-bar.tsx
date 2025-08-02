@@ -5,8 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { PanelLeftOpen, RefreshCw, AlertCircle, MoreVertical } from "lucide-react"
+import { PanelLeftOpen, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react"
 import ollamaService from "@/services/ollama-service"
 import { cn } from "@/lib/utils"
 import useMobile from "@/hooks/use-mobile"
@@ -29,12 +28,16 @@ interface TopBarProps {
   selectedModel: string
   onModelChange: (model: string) => void
   onToggleLeftPanel: () => void
+  sidebarIsHidden: boolean
+  setIsSidebarHidden: (hidden: boolean) => void
 }
 
 export function TopBar({
   selectedModel,
   onModelChange,
   onToggleLeftPanel,
+  sidebarIsHidden,
+  setIsSidebarHidden
 }: TopBarProps) {
   const [models, setModels] = useState<ModelInfo[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -88,6 +91,12 @@ export function TopBar({
     return baseName.charAt(0).toUpperCase() + baseName.slice(1)
   }
 
+  const handleButtonClick = () => {
+    loadModels()
+    onToggleLeftPanel()
+    setIsSidebarHidden(!sidebarIsHidden)
+  }
+
   const renderModelSelector = () => (
     <Select 
       value={selectedModel} 
@@ -133,62 +142,24 @@ export function TopBar({
           <Button 
             size="icon" 
             variant="ghost" 
-            onClick={loadModels}
+            onClick={handleButtonClick}
             disabled={isLoading}
             className="h-8 w-8 hover:bg-primary/10"
           >
-            <RefreshCw className={cn("h-4 w-4 text-primary", isLoading && "animate-spin")} />
+            {isLoading ? (
+              <RefreshCw className={cn("h-4 w-4 text-primary animate-spin")} />
+            ) : sidebarIsHidden ? (
+              <ChevronRight className="h-4 w-4 text-primary" />
+            ) : (
+              <ChevronLeft className="h-4 w-4 text-primary" />
+            )}
           </Button>
         </TooltipTrigger>
-        <TooltipContent>Refresh models</TooltipContent>
+        <TooltipContent>
+          {isLoading ? "Refreshing models..." : sidebarIsHidden ? "Show sidebar" : "Hide sidebar"}
+        </TooltipContent>
       </Tooltip>
-
-      <div className="flex items-center gap-2 px-2 py-1 rounded-md bg-muted">
-        <div className={cn("h-2 w-2 rounded-full", isOllamaRunning ? "bg-green-500" : "bg-red-500")} />
-        <span className="text-xs font-medium">
-          {isOllamaRunning ? 'Connected' : 'Disconnected'}
-        </span>
-      </div>
-
-      {error && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div className="flex items-center gap-1 text-amber-600 dark:text-amber-400">
-              <AlertCircle className="h-4 w-4" />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent className="max-w-[300px]" side="bottom">
-            <p className="text-amber-600 dark:text-amber-400">{error}</p>
-          </TooltipContent>
-        </Tooltip>
-      )}
     </div>
-  )
-
-  const renderMobileActions = () => (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <Button size="icon" variant="ghost" className="h-8 w-8">
-          <MoreVertical className="h-4 w-4" />
-        </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={loadModels} disabled={isLoading}>
-          <RefreshCw className={cn("h-4 w-4 mr-2", isLoading && "animate-spin")} />
-          Refresh
-        </DropdownMenuItem>
-        <DropdownMenuItem disabled>
-          <div className={cn("h-2 w-2 rounded-full mr-2", isOllamaRunning ? "bg-green-500" : "bg-red-500")} />
-          {isOllamaRunning ? 'Connected' : 'Disconnected'}
-        </DropdownMenuItem>
-        {error && (
-          <DropdownMenuItem disabled className="text-amber-600 dark:text-amber-400">
-            <AlertCircle className="h-4 w-4 mr-2" />
-            {error}
-          </DropdownMenuItem>
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
   )
 
   return (
