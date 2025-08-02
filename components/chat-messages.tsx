@@ -1,14 +1,16 @@
 "use client"
 
 import React from "react"
-import { Bot, Copy, Check, Edit, Save, X, User } from "lucide-react"
+import Image from "next/image"
+import { Bot, Copy, Check, Edit, Send, X, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types/chat"
 
 interface ChatMessagesProps {
   messages: Message[]
   onEditMessage?: (id: string, newContent: string) => void
-  onResendMessage?: (id: string) => void
+  onResendMessage?: (id: string, newContent: string) => void
+  onEditAIMessage?: (id: string, newContent: string) => void
 }
 
 // Dracula theme colors with enhanced contrast
@@ -170,9 +172,11 @@ function MarkdownRenderer({ content }: { content: string }) {
           const src = part.match(/\((.*?)\)/)?.[1] || ''
           return (
             <div key={index} className="my-3 rounded-lg overflow-hidden border">
-              <img 
+              <Image 
                 src={src} 
                 alt={altText} 
+                width={500}
+                height={300}
                 className="max-w-full h-auto"
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none'
@@ -284,6 +288,7 @@ export function ChatMessages({
 }: ChatMessagesProps) {
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editContent, setEditContent] = React.useState('')
+  const [copiedMessageId, setCopiedMessageId] = React.useState<string | null>(null)
 
   const handleStartEdit = (message: Message) => {
     setEditingId(message.id)
@@ -295,12 +300,30 @@ export function ChatMessages({
     setEditContent('')
   }
 
-  const handleSaveEdit = () => {
-    if (editingId && editContent.trim() && onEditMessage) {
-      onEditMessage(editingId, editContent)
+  const handleSaveEdit = (resend?: boolean, isAIMessage?: boolean) => {
+    console.log("handleSaveEdit called", { editingId, editContent, resend, isAIMessage });
+    if (editingId && editContent.trim()) {
+      if (isAIMessage && onEditAIMessage) {
+        console.log("Calling onEditAIMessage", { editingId, editContent });
+        onEditAIMessage(editingId, editContent)
+      } else if (onEditMessage) {
+        console.log("Calling onEditMessage", { editingId, editContent });
+        onEditMessage(editingId, editContent)
+      }
+
+      if (resend && onResendMessage) {
+        console.log("Calling onResendMessage", { editingId, editContent });
+        onResendMessage(editingId, editContent)
+      }
       setEditingId(null)
       setEditContent('')
     }
+  }
+
+  const handleCopyMessage = async (content: string, messageId: string) => {
+    await navigator.clipboard.writeText(content)
+    setCopiedMessageId(messageId)
+    setTimeout(() => setCopiedMessageId(null), 2000)
   }
 
   if (messages.length === 0) {
@@ -334,10 +357,10 @@ export function ChatMessages({
             </div>
           )}
           
-          <div className={`flex-1 max-w-3xl rounded-xl p-4 relative group ${
+          <div className={`flex-1 max-w-3xl rounded-xl p-4 relative ${
             message.role === "user"
-              ? "bg-primary/5 border border-primary/20 hover:border-primary/30"
-              : "bg-muted/50 border border-border hover:shadow-sm"
+              ? "bg-primary/5 border border-primary/20"
+              : "bg-muted/50 border border-border"
           }`}>
             <div className="flex items-center gap-2 mb-2">
               <div className="text-sm font-medium">
@@ -346,74 +369,112 @@ export function ChatMessages({
               <div className="text-xs text-muted-foreground ml-auto">
                 {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </div>
-              {message.role === "user" && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={() => handleStartEdit(message)}
-                >
-                  <Edit className="h-3.5 w-3.5" />
-                </Button>
+              {/* Copy button only for assistant messages */}
+                {message.role === "user" && (
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleCopyMessage(message.content, message.id)}
+                  >
+                    {copiedMessageId === message.id ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleStartEdit(message)}
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
+              {message.role === "assistant" && (
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleCopyMessage(message.content, message.id)}
+                  >
+                    {copiedMessageId === message.id ? (
+                      <Check className="h-3.5 w-3.5" />
+                    ) : (
+                      <Copy className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    onClick={() => handleStartEdit(message)}
+                  >
+                    <Edit className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               )}
             </div>
             
             <div className="text-base leading-relaxed">
-              {message.role === "user" ? (
-                editingId === message.id ? (
-                  <div className="space-y-3">
-                    <textarea
-                      value={editContent}
-                      onChange={(e) => setEditContent(e.target.value)}
-                      className="w-full p-3 border rounded-lg bg-background min-h-[100px] text-sm"
-                      autoFocus
-                    />
-                    <div className="flex gap-2 justify-end">
+              {editingId === message.id ? (
+                <div className="space-y-3">
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    className="w-full p-3 border rounded-lg bg-background min-h-[100px] text-sm"
+                    autoFocus
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleCancelEdit}
+                      className="gap-1"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                      Cancel
+                    </Button>
+                    {message.role === "user" && onResendMessage && (
                       <Button 
-                        variant="outline" 
                         size="sm" 
-                        onClick={handleCancelEdit}
+                        variant="secondary"
+                        onClick={() => handleSaveEdit(true)}
                         className="gap-1"
                       >
-                        <X className="h-3.5 w-3.5" />
-                        Cancel
+                        <Send className="h-3.5 w-3.5" />
+                        Resend
                       </Button>
+                    )}
+                    {message.role === "assistant" && onEditAIMessage && (
                       <Button 
                         size="sm" 
-                        onClick={handleSaveEdit}
+                        onClick={() => handleSaveEdit(false, true)}
                         className="gap-1"
                       >
                         <Save className="h-3.5 w-3.5" />
                         Save
                       </Button>
-                      {onResendMessage && (
-                        <Button 
-                          size="sm" 
-                          variant="secondary"
-                          onClick={() => {
-                            handleSaveEdit()
-                            onResendMessage(message.id)
-                          }}
-                          className="gap-1"
-                        >
-                          <Save className="h-3.5 w-3.5" />
-                          Save & Resend
-                        </Button>
-                      )}
-                    </div>
+                    )}
                   </div>
-                ) : (
+                </div>
+              ) : (
+                message.role === "user" ? (
                   <div className="whitespace-pre-wrap">
                     {message.content}
                   </div>
+                ) : (
+                  <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0">
+                    <MarkdownRenderer content={message.content} />
+                    {message.isStreaming && (
+                      <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
+                    )}
+                  </div>
                 )
-              ) : (
-                <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0">
-                  <MarkdownRenderer content={message.content} />
-                  {message.isStreaming && (
-                    <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
-                  )}
-                </div>
               )}
             </div>
           </div>

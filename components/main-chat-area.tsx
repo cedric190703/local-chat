@@ -4,20 +4,22 @@ import { ChatMessages } from "@/components/chat-messages";
 import { PromptInput } from "@/components/prompt-input";
 import { ExternalTools } from "@/components/external-tools";
 import type { Chat, UploadedFile } from "@/types/chat";
+import useMobile from "@/hooks/use-mobile";
 
 interface MainChatAreaProps {
   currentChat?: Chat;
   prompt: string;
   onPromptChange: (prompt: string) => void;
   onSendMessage: () => void;
-  onEditMessage: (messageId: string) => void;
+  onEditMessage: (messageId: string, newContent: string) => void;
   onResendMessage: (messageId: string) => void;
+  onEditAIMessage: (messageId: string, newContent: string) => void;
   onEnhancePrompt: () => void;
   isRecording: boolean;
   onToggleRecording: () => void;
   uploadedFiles: UploadedFile[];
   onRemoveFile: (fileId: string) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   isDragOver: boolean;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
@@ -50,25 +52,24 @@ export function MainChatArea({
   selectedModel,
   ollamaStatus = 'checking'
 }: MainChatAreaProps) {
+  const isMobile = useMobile();
+
   return (
     <div className="flex flex-col h-full">
-      {/* Messages Area - Scrollable */}
       <div className="flex-1 overflow-y-auto bg-background">
         <ScrollArea className="h-full">
-          <div className="p-1">
+          <div className="p-2 md:p-4">
             <ChatMessages
-            messages={currentChat?.messages || []}
-            onEditMessage={onEditMessage}
-            onResendMessage={onResendMessage}
+              messages={currentChat?.messages || []}
+              onEditMessage={onEditMessage}
+              onResendMessage={onResendMessage}
             />
           </div>
         </ScrollArea>
       </div>
 
-      {/* Bottom Section - Fixed */}
       <div className="border-t bg-background">
-        {/* Prompt Input Section */}
-        <div className="p-6">
+        <div className="p-2 md:p-6">
           <PromptInput
             prompt={prompt}
             onPromptChange={onPromptChange}
@@ -91,8 +92,7 @@ export function MainChatArea({
           />
         </div>
 
-        {/* External Tools Section */}
-        <div className="px-6 pb-24">
+        <div className="px-6 pb-4">
           <ExternalTools />
         </div>
       </div>

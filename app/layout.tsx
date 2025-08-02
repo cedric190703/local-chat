@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { SidebarProvider } from '@/components/ui/sidebar'
 
 export const metadata: Metadata = {
   title: 'Local Chat',
@@ -13,7 +14,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <head>
+        <link rel="icon" href="/logo.png" />
+      </head>
+      <body>
+        <SidebarProvider>{children}</SidebarProvider>
+      </body>
     </html>
   )
 }

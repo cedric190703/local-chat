@@ -27,7 +27,7 @@ interface PromptInputProps {
   onToggleRecording: () => void;
   uploadedFiles: UploadedFile[];
   onRemoveFile: (fileId: string) => void;
-  fileInputRef: React.RefObject<HTMLInputElement>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
   isDragOver: boolean;
   onDragOver: (e: React.DragEvent) => void;
   onDragLeave: (e: React.DragEvent) => void;
