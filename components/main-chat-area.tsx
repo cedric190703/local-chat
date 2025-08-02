@@ -13,6 +13,7 @@ interface MainChatAreaProps {
   onSendMessage: () => void;
   onEditMessage: (messageId: string, newContent: string) => void;
   onResendMessage: (messageId: string) => void;
+  onEditAIMessage: (messageId: string, newContent: string) => void;
   onEnhancePrompt: () => void;
   isRecording: boolean;
   onToggleRecording: () => void;
@@ -62,6 +63,7 @@ export function MainChatArea({
               messages={currentChat?.messages || []}
               onEditMessage={onEditMessage}
               onResendMessage={onResendMessage}
+              onEditAIMessage={onEditAIMessage}
             />
           </div>
         </ScrollArea>

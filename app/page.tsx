@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { MainChatArea } from "@/components/main-chat-area"
-import { SettingsMenu } from "@/components/settings-menu"
 import { TopBar } from "@/components/top-bar"
 import { useChat } from "@/hooks/use-chat"
 import { useTheme } from "@/hooks/use-theme"
@@ -50,22 +49,46 @@ export default function LLMInterface() {
   const [messages, setMessages] = useState<Message[]>([])
 
   const handleEditMessage = (id: string, newContent: string) => {
+    console.log("handleEditMessage called", { id, newContent });
     setMessages(prev => {
       const index = prev.findIndex(m => m.id === id)
       if (index === -1) return prev
       
       const updated = [...prev.slice(0, index + 1)]
       updated[index] = { ...updated[index], content: newContent }
+      console.log("Messages after handleEditMessage:", updated);
       return updated
     })
   }
 
-  const handleResendMessage = (id: string) => {
+  const handleResendMessage = (id: string, newContent: string) => {
+    console.log("handleResendMessage called", { id, newContent });
     const message = messages.find(m => m.id === id)
     if (!message) return
     
-    setMessages(prev => prev.slice(0, prev.findIndex(m => m.id === id) + 1))
-    sendMessage(message.content, selectedModel)
+    setMessages(prev => {
+      const index = prev.findIndex(m => m.id === id)
+      if (index === -1) return prev
+      
+      const updated = [...prev.slice(0, index + 1)]
+      updated[index] = { ...updated[index], content: newContent }
+      console.log("Messages after handleResendMessage (setMessages):", updated);
+      return updated
+    })
+    sendMessage(newContent, selectedModel)
+  }
+  
+  const handleEditAIMessage = (id: string, newContent: string) => {
+    console.log("handleEditAIMessage called", { id, newContent });
+    setMessages(prev => {
+      const index = prev.findIndex(m => m.id === id)
+      if (index === -1) return prev
+
+      const updated = [...prev]
+      updated[index] = { ...updated[index], content: newContent }
+      console.log("Messages after handleEditAIMessage:", updated);
+      return updated
+    })
   }
   
   useEffect(() => {
@@ -177,6 +200,7 @@ export default function LLMInterface() {
                 onSendMessage={handleSendMessage}
                 onEditMessage={handleEditMessage}
                 onResendMessage={handleResendMessage}
+                onEditAIMessage={handleEditAIMessage}
                 onEnhancePrompt={enhancePrompt}
                 isRecording={isRecording}
                 onToggleRecording={() => setIsRecording(!isRecording)}
