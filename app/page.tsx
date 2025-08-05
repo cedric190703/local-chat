@@ -15,19 +15,19 @@ import ollamaService from "@/services/ollama-service"
 import type { Message } from "@/types/chat"
 import { useMediaQuery } from "@/hooks/use-mobile"
 import { Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"
-import * as agentService from "@/services/agent-service"
-import { ExternalTools } from "@/components/external-tools"
+import { enhancedChatService } from "@/services/agent-service"
 
 export default function LLMInterface() {
-  const [selectedModel, setSelectedModel] = useState("")
-  const [prompt, setPrompt] = useState("")
-  const [isRecording, setIsRecording] = useState(false)
-  const [showOllamaSetup, setShowOllamaSetup] = useState(false)
-  const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking')
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const isMobile = useMediaQuery()
-  const [selectedTool, setSelectedTool] = useState<string | null>(null)
-  const { theme, setTheme } = useTheme()
+  const [selectedModel, setSelectedModel] = useState("") // Selected model for the chat
+  const [prompt, setPrompt] = useState("") // User input prompt
+  const [isRecording, setIsRecording] = useState(false) // Flag for recording state
+  const [showOllamaSetup, setShowOllamaSetup] = useState(false) // Flag to show Ollama setup alert
+  const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking') // Ollama service status
+  const fileInputRef = useRef<HTMLInputElement>(null) // Reference for file input RAG
+  const isMobile = useMediaQuery() // Check if the device is mobile for responsive design
+  const [selectedTool, setSelectedTool] = useState<string | null>(null) // Selected external tool for the chat (e.g., web search)
+  const { theme, setTheme } = useTheme() // Custom hook for theme management
+  const [isSearching, setIsSearching] = useState(false);
   const {
     chats,
     activeChat,
@@ -49,8 +49,16 @@ export default function LLMInterface() {
     removeFile,
   } = useFileUpload()
 
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>([]) // State to hold chat messages
 
+  // Handle message sending
+  // This function is called when the user sends a message
+  /**
+   * 
+   * @param id : The ID of the message to edit
+   * @param newContent : The new content for the message
+   * @returns void
+   */
   const handleEditMessage = (id: string, newContent: string) => {
     setMessages(prev => {
       const index = prev.findIndex(m => m.id === id)
@@ -61,6 +69,14 @@ export default function LLMInterface() {
     })
   }
 
+  // Handle message resending
+  // This function is called when the user wants to resend a message
+  /**
+   * 
+   * @param id : The ID of the message to resend
+   * @param newContent : The new content for the message
+   * @returns void
+   */
   const handleResendMessage = (id: string, newContent: string) => {
     const message = messages.find(m => m.id === id)
     if (!message) return
@@ -74,6 +90,13 @@ export default function LLMInterface() {
     sendMessage(newContent, selectedModel)
   }
 
+  // Handle AI message editing
+  // This function is called when the user edits an AI message
+  /**
+   * @param id : The ID of the AI message to edit
+   * @param newContent : The new content for the AI message
+   * @returns void
+   */
   const handleEditAIMessage = (id: string, newContent: string) => {
     setMessages(prev => {
       const index = prev.findIndex(m => m.id === id)
@@ -97,6 +120,12 @@ export default function LLMInterface() {
     return () => clearInterval(interval)
   }, [])
 
+  // Enhance prompt functionality
+  // This function is called to improve the user's prompt before sending it
+  /**
+   * 
+   * @returns void
+   */
   const enhancePrompt = async () => {
     if (!prompt.trim() || !selectedModel) return
     const originalPrompt = prompt
@@ -118,28 +147,49 @@ export default function LLMInterface() {
     }
   }
 
+  // Handle sending messages
+  // This function is called when the user clicks the send button
+  /** * 
+   * @returns void
+   */
   const handleSendMessage = async () => {
-    if (!prompt.trim() || !selectedModel || isGenerating) return
+    if (!prompt.trim() || !selectedModel || isGenerating) return;
 
     if (chats.length === 0 || !activeChat) {
-      const newChat = createNewChat({ model: selectedModel })
-      setActiveChat(newChat.id)
+      const newChat = createNewChat({ model: selectedModel });
+      setActiveChat(newChat.id);
     }
 
-    setPrompt("")
-
-    if (selectedTool === "web-search") {
-      // Use LangChain Agent with web search
-      const agent = await agentService.createConversation(selectedModel)
-      const result = await agent.invoke({ input: prompt })
-
-      const reply = result.output ?? "No result."
-      await sendMessage(prompt, selectedModel, reply)
-    } else {
-      // Use default Ollama generation
-      await sendMessage(prompt, selectedModel)
+    setPrompt(""); // Clear the input prompt immediately
+    
+    try {
+      if (selectedTool === "web-search") {
+        setIsSearching(true); // Start search-specific indicator
+        console.log(isSearching);
+        
+        // Enable web search mode
+        enhancedChatService.setWebSearchEnabled(true);
+        const response = await enhancedChatService.streamMessage(
+          prompt,
+          activeChat,
+          selectedModel
+        );
+        await sendMessage(prompt, selectedModel, response);
+        // Disable web search after use
+        enhancedChatService.setWebSearchEnabled(false);
+      } else {
+        // Ensure web search is disabled
+        enhancedChatService.setWebSearchEnabled(false);
+        await sendMessage(prompt, selectedModel);
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      // Optionally, add error handling UI here (e.g., display an error message)
+    } finally {
+      // Ensure indicators are turned off regardless of success or failure
+      setIsSearching(false); // Stop search-specific indicator
     }
-  }
+  };
 
   const currentChat = chats.find(chat => chat.id === activeChat)
   const { toggleSidebar } = useSidebar()
@@ -215,11 +265,14 @@ export default function LLMInterface() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 isGenerating={isGenerating}
+                isSearching={isSearching}
                 onStopGeneration={stopGeneration}
                 selectedModel={selectedModel}
                 ollamaStatus={ollamaStatus}
+                selectedTool={selectedTool}
+                onSelectTool={setSelectedTool}
               />
-              <ExternalTools selectedTool={selectedTool} onSelect={setSelectedTool} />
+              
             </div>
           </div>
         </SidebarInset>

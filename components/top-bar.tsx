@@ -97,6 +97,33 @@ export function TopBar({
     setIsSidebarHidden(!sidebarIsHidden)
   }
 
+  const renderMobileActions = () => (
+    <div className="flex items-center gap-3">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button 
+            size="icon" 
+            variant="ghost" 
+            onClick={handleButtonClick}
+            disabled={isLoading}
+            className="h-8 w-8 hover:bg-primary/10"
+          >
+            {isLoading ? (
+              <RefreshCw className={cn("h-4 w-4 text-primary animate-spin")} />
+            ) : sidebarIsHidden ? (
+              <ChevronRight className="h-4 w-4 text-primary" />
+            ) : (
+              <ChevronLeft className="h-4 w-4 text-primary" />
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          {isLoading ? "Refreshing models..." : sidebarIsHidden ? "Show sidebar" : "Hide sidebar"}
+        </TooltipContent>
+      </Tooltip>
+    </div>
+  )
+
   const renderModelSelector = () => (
     <Select 
       value={selectedModel} 

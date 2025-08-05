@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react"
-import ollamaService from "@/services/ollama-service"
+import { enhancedChatService } from "@/services/agent-service"
 
 export interface Message {
   id: string
@@ -105,21 +105,20 @@ export function useChat(): UseChatReturn {
   }, [currentAbortController])
 
   const sendMessage = useCallback(
-    async (content: string, model: string) => {
-      
-      if (!content.trim() || !model) return
+    async (content: string, model: string, initialResponse?: string) => {
+      if (!content.trim() || !model) return;
 
       // Stop any ongoing generation
-      stopGeneration()
+      stopGeneration();
 
-      let chatId = activeChat
-      let targetChat = chats.find(c => c.id === activeChat)
+      let chatId = activeChat;
+      let targetChat = chats.find(c => c.id === activeChat);
 
       // Create new chat if none exists or is selected
       if (!targetChat) {
-        targetChat = createNewChat({ model, title: generateTitle(content) })
-        chatId = targetChat.id
-        setActiveChat(chatId)
+        targetChat = createNewChat({ model, title: generateTitle(content) });
+        chatId = targetChat.id;
+        setActiveChat(chatId);
       }
 
       const userMessage: Message = {
@@ -127,15 +126,15 @@ export function useChat(): UseChatReturn {
         role: "user",
         content: content.trim(),
         timestamp: new Date().toISOString()
-      }
+      };
 
       const assistantMessage: Message = {
         id: generateId(),
         role: "assistant",
-        content: "",
+        content: initialResponse || "",
         timestamp: new Date().toISOString(),
         isStreaming: true
-      }
+      };
 
       // Add user message and placeholder assistant message
       setChats(prev =>
@@ -146,35 +145,31 @@ export function useChat(): UseChatReturn {
                 messages: [...chat.messages, userMessage, assistantMessage],
                 model,
                 updatedAt: new Date().toISOString(),
-                title:
-                  chat.messages.length === 0
-                    ? generateTitle(content)
-                    : chat.title
+                title: chat.messages.length === 0 ? generateTitle(content) : chat.title
               }
             : chat
         )
-      )
+      );
 
-      setIsGenerating(true)
+      setIsGenerating(true);
 
       try {
         // Create abort controller for this request
-        const abortController = new AbortController()
-        setCurrentAbortController(abortController)
+        const abortController = new AbortController();
+        setCurrentAbortController(abortController);
 
-        let fullResponse = ""
+        let fullResponse = initialResponse || "";
 
-        const response = await ollamaService.generate(
-          {
-            model,
-            prompt: content,
-            stream: true
-          },
-          (token: string) => {
+        // Use the enhanced chat service with LangChain/LangGraph capabilities
+        const response = await enhancedChatService.streamMessage(
+          content,
+          chatId || 'default',
+          model,
+          (chunk: string) => {
             // Check if generation was aborted
-            if (abortController.signal.aborted) return
+            if (abortController.signal.aborted) return;
 
-            fullResponse += token
+            fullResponse += chunk;
 
             // Update the streaming message
             setChats(prev =>
@@ -191,12 +186,13 @@ export function useChat(): UseChatReturn {
                     }
                   : chat
               )
-            )
-          }
-        )
+            );
+          },
+        );
 
-        if (!response.success) {
-          throw new Error(response.error || "Failed to generate response")
+        // The enhanced chat service returns a string, not an object with success/error
+        if (!response || response.includes('Error')) {
+          throw new Error(response || "Failed to generate response");
         }
 
         // Mark streaming as complete
@@ -209,7 +205,7 @@ export function useChat(): UseChatReturn {
                     msg.id === assistantMessage.id
                       ? {
                           ...msg,
-                          content: fullResponse || response.data || "",
+                          content: fullResponse || response || "",
                           isStreaming: false
                         }
                       : msg
@@ -218,9 +214,9 @@ export function useChat(): UseChatReturn {
                 }
               : chat
           )
-        )
+        );
       } catch (error) {
-        console.error("Error generating response:", error)
+        console.error("Error generating response:", error);
 
         // Update message with error
         setChats(prev =>
@@ -242,14 +238,14 @@ export function useChat(): UseChatReturn {
                 }
               : chat
           )
-        )
+        );
       } finally {
-        setIsGenerating(false)
-        setCurrentAbortController(null)
+        setIsGenerating(false);
+        setCurrentAbortController(null);
       }
     },
     [activeChat, chats, createNewChat, stopGeneration]
-  )
+  );
 
   const regenerateLastMessage = useCallback(
     async (model: string) => {

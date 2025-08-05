@@ -2,7 +2,7 @@
 
 import React from "react"
 import Image from "next/image"
-import { Bot, Copy, Check, Edit, Send, X, User } from "lucide-react"
+import { Bot, Copy, Check, Edit, Send, X, User, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types/chat"
 

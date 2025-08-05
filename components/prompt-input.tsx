@@ -13,6 +13,7 @@ import {
   Upload,
   X,
   AlertCircle,
+  Search,
   Loader2
 } from "lucide-react";
 import type { UploadedFile } from "@/types/chat";
@@ -33,6 +34,7 @@ interface PromptInputProps {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   isGenerating?: boolean;
+  isSearching?: boolean;
   onStopGeneration?: () => void;
   selectedModel?: string;
   ollamaStatus?: 'checking' | 'connected' | 'disconnected';
@@ -54,6 +56,7 @@ export function PromptInput({
   onDragLeave,
   onDrop,
   isGenerating = false,
+   isSearching = false,
   onStopGeneration,
   selectedModel,
   ollamaStatus = 'checking',
@@ -84,11 +87,11 @@ export function PromptInput({
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && !isGenerating && !isEnhancing && prompt.trim()) {
+      if (!disabled && !isGenerating && !isSearching && !isEnhancing && prompt.trim()) {
         onSendMessage();
       }
     }
-  }, [disabled, isGenerating, isEnhancing, onSendMessage, prompt]);
+  }, [disabled, isGenerating, isSearching, isEnhancing, onSendMessage, prompt]);
 
   const handleUploadClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -115,9 +118,9 @@ export function PromptInput({
     setIsFocused(false);
   }, []);
 
-  const canSend = !disabled && !isGenerating && !isEnhancing && prompt.trim() && selectedModel;
-  const showStopButton = isGenerating && onStopGeneration;
-  const isInputDisabled = disabled || isEnhancing;
+  const canSend = !disabled && !isGenerating && !isSearching && !isEnhancing && prompt.trim() && selectedModel;
+  const showStopButton = (isGenerating || isSearching) && onStopGeneration;
+  const isInputDisabled = disabled || isEnhancing || isSearching || ollamaStatus === 'disconnected';
 
   return (
     <div className="space-y-4">
@@ -195,6 +198,31 @@ export function PromptInput({
                   <Sparkles className="h-5 w-5 text-primary" />
                 </motion.div>
                 <span className="text-sm font-medium">Enhancing your prompt...</span>
+              </div>
+            </motion.div>
+          )}
+          {isSearching && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 flex items-center justify-center bg-background/90 z-10 rounded-xl backdrop-blur-sm"
+            >
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.8, 1, 0.8],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1.5,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Search className="h-5 w-5 text-primary" />
+                </motion.div>
+                <span className="text-sm font-medium">Searching external tools...</span>
               </div>
             </motion.div>
           )}
