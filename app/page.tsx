@@ -15,6 +15,8 @@ import ollamaService from "@/services/ollama-service"
 import type { Message } from "@/types/chat"
 import { useMediaQuery } from "@/hooks/use-mobile"
 import { Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"
+import * as agentService from "@/services/agent-service"
+import { ExternalTools } from "@/components/external-tools"
 
 export default function LLMInterface() {
   const [selectedModel, setSelectedModel] = useState("")
@@ -24,18 +26,19 @@ export default function LLMInterface() {
   const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking')
   const fileInputRef = useRef<HTMLInputElement>(null)
   const isMobile = useMediaQuery()
-
+  const [selectedTool, setSelectedTool] = useState<string | null>(null)
   const { theme, setTheme } = useTheme()
-  const { 
-    chats, 
-    activeChat, 
+  const {
+    chats,
+    activeChat,
     isGenerating,
-    setActiveChat, 
-    createNewChat, 
-    deleteChat, 
+    setActiveChat,
+    createNewChat,
+    deleteChat,
     sendMessage,
-    stopGeneration 
+    stopGeneration
   } = useChat()
+
   const {
     uploadedFiles,
     isDragOver,
@@ -49,48 +52,38 @@ export default function LLMInterface() {
   const [messages, setMessages] = useState<Message[]>([])
 
   const handleEditMessage = (id: string, newContent: string) => {
-    console.log("handleEditMessage called", { id, newContent });
     setMessages(prev => {
       const index = prev.findIndex(m => m.id === id)
       if (index === -1) return prev
-      
-      const updated = [...prev.slice(0, index + 1)]
+      const updated = [...prev]
       updated[index] = { ...updated[index], content: newContent }
-      console.log("Messages after handleEditMessage:", updated);
       return updated
     })
   }
 
   const handleResendMessage = (id: string, newContent: string) => {
-    console.log("handleResendMessage called", { id, newContent });
     const message = messages.find(m => m.id === id)
     if (!message) return
-    
     setMessages(prev => {
       const index = prev.findIndex(m => m.id === id)
       if (index === -1) return prev
-      
-      const updated = [...prev.slice(0, index + 1)]
+      const updated = [...prev]
       updated[index] = { ...updated[index], content: newContent }
-      console.log("Messages after handleResendMessage (setMessages):", updated);
       return updated
     })
     sendMessage(newContent, selectedModel)
   }
-  
+
   const handleEditAIMessage = (id: string, newContent: string) => {
-    console.log("handleEditAIMessage called", { id, newContent });
     setMessages(prev => {
       const index = prev.findIndex(m => m.id === id)
       if (index === -1) return prev
-
       const updated = [...prev]
       updated[index] = { ...updated[index], content: newContent }
-      console.log("Messages after handleEditAIMessage:", updated);
       return updated
     })
   }
-  
+
   useEffect(() => {
     const checkOllama = async () => {
       setOllamaStatus('checking')
@@ -98,54 +91,64 @@ export default function LLMInterface() {
       setOllamaStatus(isRunning ? 'connected' : 'disconnected')
       setShowOllamaSetup(!isRunning)
     }
-    
+
     checkOllama()
-    
     const interval = setInterval(checkOllama, 30000)
     return () => clearInterval(interval)
   }, [])
 
   const enhancePrompt = async () => {
-    if (!prompt.trim() || !selectedModel) return;
-    const originalPrompt = prompt;
-    setPrompt("Improving your prompt...");
+    if (!prompt.trim() || !selectedModel) return
+    const originalPrompt = prompt
+    setPrompt("Improving your prompt...")
 
     try {
       const enhancementResponse = await ollamaService.generate({
         model: selectedModel,
         prompt: `Please improve this prompt... Original prompt: """${originalPrompt}"""`
-      });
-      
+      })
+
       if (enhancementResponse.success && enhancementResponse.data) {
-        setPrompt(enhancementResponse.data.trim());
+        setPrompt(enhancementResponse.data.trim())
       } else {
-        setPrompt(originalPrompt);
+        setPrompt(originalPrompt)
       }
     } catch (error) {
-      setPrompt(originalPrompt);
+      setPrompt(originalPrompt)
     }
-  };
+  }
 
   const handleSendMessage = async () => {
     if (!prompt.trim() || !selectedModel || isGenerating) return
-    
+
     if (chats.length === 0 || !activeChat) {
       const newChat = createNewChat({ model: selectedModel })
       setActiveChat(newChat.id)
     }
+
     setPrompt("")
-    await sendMessage(prompt, selectedModel)
+
+    if (selectedTool === "web-search") {
+      // Use LangChain Agent with web search
+      const agent = await agentService.createConversation(selectedModel)
+      const result = await agent.invoke({ input: prompt })
+
+      const reply = result.output ?? "No result."
+      await sendMessage(prompt, selectedModel, reply)
+    } else {
+      // Use default Ollama generation
+      await sendMessage(prompt, selectedModel)
+    }
   }
 
-  const currentChat = chats.find((chat) => chat.id === activeChat)
-
+  const currentChat = chats.find(chat => chat.id === activeChat)
   const { toggleSidebar } = useSidebar()
   const [isSidebarHidden, setIsSidebarHidden] = useState(false)
 
   return (
     <TooltipProvider>
       <div className="flex h-screen bg-background overflow-hidden">
-        {/* Alerte Ollama */}
+        {/* Ollama Alert */}
         {showOllamaSetup && ollamaStatus === 'disconnected' && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md p-4">
             <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
@@ -181,7 +184,7 @@ export default function LLMInterface() {
           />
         </Sidebar>
 
-        {/* Zone décalée : TopBar + MainChatArea */}
+        {/* Main Area */}
         <SidebarInset>
           <div className="flex flex-col h-full">
             <TopBar
@@ -216,12 +219,12 @@ export default function LLMInterface() {
                 selectedModel={selectedModel}
                 ollamaStatus={ollamaStatus}
               />
+              <ExternalTools selectedTool={selectedTool} onSelect={setSelectedTool} />
             </div>
           </div>
         </SidebarInset>
 
-
-        {/* Fichier upload */}
+        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"

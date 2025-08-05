@@ -1,9 +1,8 @@
-"use client"
-
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip"
+import {
+  Tooltip, TooltipContent, TooltipTrigger, TooltipProvider
+} from "@/components/ui/tooltip"
 import { Zap } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -12,17 +11,23 @@ const externalTools = [
   { id: "mcp", name: "MCP", description: "Model Context Protocol integration", icon: "🔗", isBeta: true },
 ]
 
-export function ExternalTools() {
-  const [selectedTool, setSelectedTool] = useState<string | null>(null)
+interface ExternalToolsProps {
+  selectedTool: string | null
+  onSelect: (toolId: string) => void
+}
 
+export function ExternalTools({ selectedTool, onSelect }: ExternalToolsProps) {
   const handleToolClick = (toolId: string) => {
     if (toolId === "mcp") {
-      alert("MCP (Model Context Protocol) is currently in beta and not yet implemented.")
+      alert("MCP is currently in beta and not implemented.")
       return
     }
-    
-    // Toggle selection
-    setSelectedTool(selectedTool === toolId ? null : toolId)
+    if (selectedTool === toolId) {
+      // Optionally, you can pass an empty string to indicate deselection
+      onSelect("");
+    } else {
+      onSelect(toolId);
+    }
   }
 
   return (
@@ -54,10 +59,7 @@ export function ExternalTools() {
                   )}
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>
-                {tool.description}
-                {tool.isBeta && " (Not yet implemented)"}
-              </TooltipContent>
+              <TooltipContent>{tool.description}</TooltipContent>
             </Tooltip>
           ))}
         </div>
