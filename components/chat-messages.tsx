@@ -7,6 +7,7 @@ import remarkGfm from "remark-gfm"
 import { Bot, Copy, Check, Edit, Send, X, User, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types/chat"
+import { usePreferences } from "@/hooks/use-preferences"
 
 interface ChatMessagesProps {
   messages: Message[]
@@ -289,6 +290,7 @@ export function ChatMessages({
   onResendMessage,
   onEditAIMessage
 }: ChatMessagesProps) {
+  const { codeTheme, markdownFont, markdownSize } = usePreferences()
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editContent, setEditContent] = React.useState('')
   const [copiedMessageId, setCopiedMessageId] = React.useState<string | null>(null)
@@ -471,7 +473,11 @@ export function ChatMessages({
                     {message.content}
                   </div>
                 ) : (
-                  <div className="prose prose-sm md:prose-base lg:prose-lg max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0">
+                  <div className={`prose ${
+                      markdownSize === 'sm' ? 'prose-sm' : markdownSize === 'lg' ? 'prose-lg' : 'prose-base'
+                    } max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0 ${
+                      markdownFont === 'serif' ? 'font-serif' : markdownFont === 'mono' ? 'font-mono' : 'font-sans'
+                    }`}>
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
                       components={{
@@ -489,7 +495,7 @@ export function ChatMessages({
                           const highlighted = highlightSyntax(content, language)
                           const codeId = `code-${message.id}`
                           return (
-                            <div className="relative group border rounded-lg overflow-hidden">
+                            <div className={`relative group border rounded-lg overflow-hidden ${codeTheme === 'github' ? 'bg-white' : ''}`}>
                               <div className="flex items-center justify-between px-3 py-1.5 border-b bg-muted/50">
                                 <span className="font-mono text-xs text-muted-foreground">{language || 'text'}</span>
                                 <Button
@@ -503,7 +509,7 @@ export function ChatMessages({
                                   <Copy className="h-3.5 w-3.5" />
                                 </Button>
                               </div>
-                              <pre className="p-3 overflow-x-auto text-sm leading-relaxed" style={{ backgroundColor: draculaColors.background }}>
+                              <pre className="p-3 overflow-x-auto text-sm leading-relaxed" style={{ backgroundColor: codeTheme === 'dracula' ? draculaColors.background : codeTheme === 'vscode' ? '#1e1e1e' : '#f6f8fa' }}>
                                 <code
                                   className="font-mono"
                                   dangerouslySetInnerHTML={{ __html: highlighted }}

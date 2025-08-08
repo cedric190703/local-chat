@@ -1,6 +1,7 @@
 import { ChatOllama } from "@langchain/ollama";
 import { BaseMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
 import { chatAgent, LangGraphChatAgent } from "./langgraph-agent";
+import { runRag } from "./rag-service";
 
 // List of tools available for the agent
 import { documentProcessor } from "./document-service";
@@ -67,12 +68,18 @@ export class EnhancedChatService {
           onChunk
         );
       } else {
-        // Normal concise processing
-        response = await this.agent.streamMessage(
-          `[INSTRUCTIONS] Answer in ONE sentence unless asked to elaborate. Query: "${message}"`,
-          history,
-          onChunk
-        );
+        // Try RAG with documents when available; fall back to normal agent
+        const docs = this.agent.getAvailableTools().join(" ") // cheap check that tools are set
+        try {
+          response = await runRag(message, history, { modelName: (this as any).agent?.["model"]?.fields?.model ?? "llama3.2" })
+          if (onChunk) onChunk(response)
+        } catch {
+          response = await this.agent.streamMessage(
+            `[INSTRUCTIONS] Answer in ONE sentence unless asked to elaborate. Query: "${message}"`,
+            history,
+            onChunk
+          );
+        }
       }
       
       // Update history

@@ -6,6 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Settings, Sun, Moon, Monitor } from "lucide-react"
 import useMobile from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
+import { usePreferences, type CodeTheme, type MarkdownFont, type MarkdownSize } from "@/hooks/use-preferences"
 
 type Theme = "light" | "dark" | "system"
 
@@ -16,6 +17,7 @@ interface SettingsMenuProps {
 
 export function SettingsMenu({ theme, onThemeChange }: SettingsMenuProps) {
   const isMobile = useMobile()
+  const { codeTheme, markdownFont, markdownSize, setCodeTheme, setMarkdownFont, setMarkdownSize } = usePreferences()
 
   return (
     <div className={cn(
@@ -34,7 +36,7 @@ export function SettingsMenu({ theme, onThemeChange }: SettingsMenuProps) {
             </TooltipTrigger>
             <TooltipContent>Settings and preferences</TooltipContent>
           </Tooltip>
-          <DropdownMenuContent align={isMobile ? "end" : "start"} className="w-48">
+          <DropdownMenuContent align={isMobile ? "end" : "start"} className="w-64">
             <div className="px-2 py-1.5 text-sm font-medium">Theme</div>
             <DropdownMenuItem onClick={() => onThemeChange("light")} className="flex items-center gap-2">
               <Sun className="h-4 w-4" />
@@ -51,6 +53,30 @@ export function SettingsMenu({ theme, onThemeChange }: SettingsMenuProps) {
               System
               {theme === "system" && <span className="ml-auto">✓</span>}
             </DropdownMenuItem>
+
+            <div className="px-2 pt-3 pb-1.5 text-sm font-medium">Code theme</div>
+            {(["dracula", "github", "vscode"] as CodeTheme[]).map((t) => (
+              <DropdownMenuItem key={t} onClick={() => setCodeTheme(t)} className="capitalize">
+                {t}
+                {codeTheme === t && <span className="ml-auto">✓</span>}
+              </DropdownMenuItem>
+            ))}
+
+            <div className="px-2 pt-3 pb-1.5 text-sm font-medium">Markdown font</div>
+            {(["sans", "serif", "mono"] as MarkdownFont[]).map((f) => (
+              <DropdownMenuItem key={f} onClick={() => setMarkdownFont(f)} className="capitalize">
+                {f}
+                {markdownFont === f && <span className="ml-auto">✓</span>}
+              </DropdownMenuItem>
+            ))}
+
+            <div className="px-2 pt-3 pb-1.5 text-sm font-medium">Markdown size</div>
+            {(["sm", "md", "lg"] as MarkdownSize[]).map((s) => (
+              <DropdownMenuItem key={s} onClick={() => setMarkdownSize(s)} className="uppercase">
+                {s}
+                {markdownSize === s && <span className="ml-auto">✓</span>}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </TooltipProvider>

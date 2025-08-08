@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { PreferencesProvider } from "@/hooks/use-preferences"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { MainChatArea } from "@/components/main-chat-area"
 import { TopBar } from "@/components/top-bar"
@@ -155,6 +156,7 @@ export default function LLMInterface() {
 
   return (
     <TooltipProvider>
+      <PreferencesProvider>
       <div className="flex h-screen bg-background overflow-hidden">
         {/* Ollama Alert */}
         {showOllamaSetup && ollamaStatus === 'disconnected' && (
@@ -245,6 +247,7 @@ export default function LLMInterface() {
           accept="image/*,.pdf,.doc,.docx,.txt"
         />
       </div>
+      </PreferencesProvider>
     </TooltipProvider>
   )
 }
