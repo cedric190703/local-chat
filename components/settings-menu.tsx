@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { Settings, Sun, Moon, Monitor } from "lucide-react"
 import useMobile from "@/hooks/use-mobile"
 import { cn } from "@/lib/utils"
-import { usePreferences, type CodeTheme, type MarkdownFont, type MarkdownSize } from "@/hooks/use-preferences"
+import { usePreferences, type CodeTheme, type MarkdownFont, type MarkdownSize, type MarkdownTheme, type MarkdownStyle } from "@/hooks/use-preferences"
 
 type Theme = "light" | "dark" | "system"
 
@@ -17,7 +17,7 @@ interface SettingsMenuProps {
 
 export function SettingsMenu({ theme, onThemeChange }: SettingsMenuProps) {
   const isMobile = useMobile()
-  const { codeTheme, markdownFont, markdownSize, setCodeTheme, setMarkdownFont, setMarkdownSize } = usePreferences()
+  const { codeTheme, markdownFont, markdownSize, markdownTheme, markdownStyle, setCodeTheme, setMarkdownFont, setMarkdownSize, setMarkdownTheme, setMarkdownStyle } = usePreferences()
 
   return (
     <div className={cn(
@@ -75,6 +75,14 @@ export function SettingsMenu({ theme, onThemeChange }: SettingsMenuProps) {
               <DropdownMenuItem key={s} onClick={() => setMarkdownSize(s)} className="uppercase">
                 {s}
                 {markdownSize === s && <span className="ml-auto">✓</span>}
+              </DropdownMenuItem>
+            ))}
+            
+            <div className="px-2 pt-3 pb-1.5 text-sm font-medium">Markdown style</div>
+            {(["default", "compact", "spacious"] as MarkdownStyle[]).map((s) => (
+              <DropdownMenuItem key={s} onClick={() => setMarkdownStyle(s)} className="capitalize">
+                {s}
+                {markdownStyle === s && <span className="ml-auto">✓</span>}
               </DropdownMenuItem>
             ))}
           </DropdownMenuContent>

@@ -7,6 +7,13 @@ export interface Message {
   content: string
   timestamp: string
   isStreaming?: boolean
+  files?: Array<{
+    id: string
+    name: string
+    type: string
+    size?: string
+    icon?: string
+  }>
 }
 
 export interface Chat {
@@ -25,7 +32,7 @@ export interface UseChatReturn {
   setActiveChat: (chatId: string) => void
   createNewChat: (options?: { model?: string; title?: string }) => Chat
   deleteChat: (chatId: string) => void
-  sendMessage: (content: string, model: string, initialResponse?: string) => Promise<void>
+  sendMessage: (content: string, model: string, initialResponse?: string, files?: Array<{id: string, name: string, type: string, size?: string}>) => Promise<void>
   clearChat: (chatId: string) => void
   updateChatTitle: (chatId: string, title: string) => void
   regenerateLastMessage: (model: string) => Promise<void>
@@ -45,6 +52,22 @@ export function useChat(): UseChatReturn {
     useState<AbortController | null>(null)
 
   const generateId = () => Math.random().toString(36).substr(2, 9)
+
+  const getFileIcon = (type: string, name: string): string => {
+    if (type.startsWith('image/')) return '🖼️'
+    if (type.startsWith('audio/')) return '🎵'
+    if (type.startsWith('video/')) return '🎥'
+    if (type === 'application/pdf') return '📄'
+    if (type === 'application/json') return '📋'
+    if (name.endsWith('.md')) return '📝'
+    if (name.endsWith('.py')) return '🐍'
+    if (name.endsWith('.js') || name.endsWith('.ts')) return '⚡'
+    if (name.endsWith('.html')) return '🌐'
+    if (name.endsWith('.css')) return '🎨'
+    if (name.endsWith('.csv')) return '📊'
+    if (name.endsWith('.sql')) return '🗄️'
+    return '📄'
+  }
 
   const createNewChat = useCallback(
     (options?: { model?: string; title?: string }) => {
@@ -105,7 +128,7 @@ export function useChat(): UseChatReturn {
   }, [currentAbortController])
 
   const sendMessage = useCallback(
-    async (content: string, model: string, initialResponse?: string) => {
+    async (content: string, model: string, initialResponse?: string, files?: Array<{id: string, name: string, type: string, size?: string}>) => {
       if (!content.trim() || !model) return;
 
       // Stop any ongoing generation
@@ -121,11 +144,18 @@ export function useChat(): UseChatReturn {
         setActiveChat(chatId);
       }
 
+      // Add file icons to files if not present
+      const filesWithIcons = files?.map(file => ({
+        ...file,
+        icon: getFileIcon(file.type, file.name)
+      }));
+
       const userMessage: Message = {
         id: generateId(),
         role: "user",
         content: content.trim(),
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        files: filesWithIcons
       };
 
       const assistantMessage: Message = {

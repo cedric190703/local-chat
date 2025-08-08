@@ -127,23 +127,53 @@ export function PromptInput({
       {/* Uploaded Files */}
       {uploadedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {uploadedFiles.map((file) => (
-            <Badge
-              key={file.id}
-              variant="secondary"
-              className="flex items-center gap-2 py-1 px-2 rounded-full"
-            >
-              <span className="text-xs truncate max-w-[120px]">{file.name}</span>
-              <button
-                type="button"
-                className="h-4 w-4 p-0 rounded-full flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                onClick={() => onRemoveFile(file.id)}
-                aria-label={`Remove ${file.name}`}
+          {uploadedFiles.map((file) => {
+            const getFileIcon = (file: UploadedFile) => {
+              if (file.type.startsWith('image/')) return '🖼️'
+              if (file.type.startsWith('audio/')) return '🎵'
+              if (file.type.startsWith('video/')) return '🎥'
+              if (file.type === 'application/pdf') return '📄'
+              if (file.type === 'application/json') return '📋'
+              if (file.name.endsWith('.md')) return '📝'
+              if (file.name.endsWith('.py')) return '🐍'
+              if (file.name.endsWith('.js') || file.name.endsWith('.ts')) return '⚡'
+              if (file.name.endsWith('.html')) return '🌐'
+              if (file.name.endsWith('.css')) return '🎨'
+              return '📄'
+            }
+            
+            const getFileDescription = (file: UploadedFile) => {
+              if (file.type.startsWith('image/')) return 'Image - Can be analyzed by vision models'
+              if (file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.txt')) return 'Text document - Content available to model'
+              if (file.name.endsWith('.py') || file.name.endsWith('.js') || file.name.endsWith('.ts')) return 'Code file - Available for analysis'
+              if (file.type === 'application/pdf') return 'PDF document - Will be processed for content'
+              return 'File uploaded - Processing for model integration'
+            }
+
+            return (
+              <div
+                key={file.id}
+                className="flex items-center gap-2 py-2 px-3 rounded-lg border bg-muted/50 hover:bg-muted/70 transition-colors"
+                title={getFileDescription(file)}
               >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
+                <span className="text-sm">{getFileIcon(file)}</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium truncate max-w-[120px]">{file.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {(file.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="h-5 w-5 p-0 rounded-full flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors ml-1"
+                  onClick={() => onRemoveFile(file.id)}
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
 

@@ -13,8 +13,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ollamaService from "@/services/ollama-service"
-import type { Message } from "@/types/chat"
-import { useMediaQuery } from "@/hooks/use-mobile"
 import { Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"
 import { enhancedChatService } from "@/services/agent-service"
 
@@ -25,7 +23,6 @@ export default function LLMInterface() {
   const [showOllamaSetup, setShowOllamaSetup] = useState(false) // Flag to show Ollama setup alert
   const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking') // Ollama service status
   const fileInputRef = useRef<HTMLInputElement>(null) // Reference for file input RAG
-  const isMobile = useMediaQuery() // Check if the device is mobile for responsive design
   const [selectedTool, setSelectedTool] = useState<string | null>(null) // Selected external tool for the chat (e.g., web search)
   const { theme, setTheme } = useTheme() // Custom hook for theme management
   const [isSearching, setIsSearching] = useState(false);
@@ -49,6 +46,7 @@ export default function LLMInterface() {
     handleDragLeave,
     handleDrop,
     removeFile,
+    clearFiles,
   } = useFileUpload()
 
   // Edit a user message and resend using chat state
@@ -93,7 +91,9 @@ export default function LLMInterface() {
     try {
       const enhancementResponse = await ollamaService.generate({
         model: selectedModel,
-        prompt: `Please improve this prompt... Original prompt: """${originalPrompt}"""`
+        prompt: `Please improve this prompt... Original prompt: """${orisginalPrompt}"""
+        Just return the improved prompt without any additional text like correct the grammar or spelling.
+        Make it more concise and clear but do not make additional comments and responds in the language of the original prompt.`,
       })
 
       if (enhancementResponse.success && enhancementResponse.data) {
@@ -121,6 +121,15 @@ export default function LLMInterface() {
 
     setPrompt(""); // Clear the input prompt immediately
     
+    // Store current files before clearing them and convert to proper format
+    const currentFiles = uploadedFiles.map(file => ({
+      id: file.id,
+      name: file.name,
+      type: file.type,
+      size: file.size ? `${(file.size / 1024).toFixed(1)} KB` : undefined
+    }));
+    clearFiles(); // Clear files from input bar immediately after sending
+    
     try {
       if (selectedTool === "web-search") {
         setIsSearching(true); // Start search-specific indicator
@@ -133,13 +142,13 @@ export default function LLMInterface() {
           activeChat ?? 'default',
           selectedModel
         );
-        await sendMessage(prompt, selectedModel, response);
+        await sendMessage(prompt, selectedModel, response, currentFiles);
         // Disable web search after use
         enhancedChatService.setWebSearchEnabled(false);
       } else {
         // Ensure web search is disabled
         enhancedChatService.setWebSearchEnabled(false);
-        await sendMessage(prompt, selectedModel);
+        await sendMessage(prompt, selectedModel, undefined, currentFiles);
       }
     } catch (error) {
       console.error("Error sending message:", error);

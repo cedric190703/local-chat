@@ -25,10 +25,60 @@ export class DocumentProcessor {
         throw new Error('Content is required for document processing in browser environment');
       }
       
+      // Validate content is actually text and not binary data
+      if (this.isBinaryContent(content)) {
+        // For binary files, create a simple reference chunk
+        const documentChunks: DocumentChunk[] = [{
+          id: `${fileName}-chunk-0`,
+          content: `File: ${fileName} (binary content - not processed for text search)`,
+          metadata: {
+            source: fileName,
+            chunkIndex: 0,
+            totalChunks: 1,
+          },
+        }];
+        
+        this.documents.set(fileName, documentChunks);
+        this.buildSimpleIndex(fileName, documentChunks);
+        return documentChunks;
+      }
+      
       const text = content;
 
-      // Simple text chunking
-      const chunks = this.splitText(text, 1000, 200);
+      // Handle different file types with appropriate chunking strategies
+      let chunks: string[];
+      
+      if (text.startsWith('IMAGE_FILE:')) {
+        // For images, don't chunk the base64 data - create a single chunk with metadata only
+        const lines = text.split('\n');
+        const metadataLines = lines.slice(0, 5); // First 5 lines contain metadata
+        const imageMetadata = metadataLines.join('\n') + '\n[Base64 image data available for vision models]';
+        chunks = [imageMetadata];
+      } else if (text.startsWith('BINARY_FILE:')) {
+        // For binary files, just use the metadata
+        chunks = [text];
+      } else if (text.startsWith('DOCUMENT_FILE:')) {
+        // For document files, extract content and chunk appropriately
+        const contentStart = text.indexOf('Content:\n');
+        if (contentStart !== -1) {
+          const metadata = text.substring(0, contentStart + 9);
+          const actualContent = text.substring(contentStart + 9);
+          
+          // Chunk the actual content, but keep chunks reasonable for large files
+          const maxChunkSize = Math.min(1000, Math.max(500, Math.floor(actualContent.length / 50)));
+          const contentChunks = this.splitText(actualContent, maxChunkSize, 200);
+          
+          // Add metadata to first chunk, content to subsequent chunks
+          chunks = contentChunks.map((chunk, index) => 
+            index === 0 ? metadata + chunk : chunk
+          );
+        } else {
+          chunks = this.splitText(text, 1000, 200);
+        }
+      } else {
+        // Regular text chunking for other content
+        chunks = this.splitText(text, 1000, 200);
+      }
       const documentChunks: DocumentChunk[] = chunks.map((chunk: string, index: number) => ({
         id: `${fileName}-chunk-${index}`,
         content: chunk,
@@ -49,17 +99,63 @@ export class DocumentProcessor {
     }
   }
 
+  // Note: for binary parsing, use a server API. Browser fallback is handled in upload hook.
+
+  private isBinaryContent(content: string): boolean {
+    // Check for null bytes or other binary indicators
+    if (content.includes('\0')) return true;
+    
+    // Check for high percentage of non-printable characters
+    const nonPrintableCount = content.split('').filter(char => {
+      const code = char.charCodeAt(0);
+      return code < 32 && code !== 9 && code !== 10 && code !== 13; // Allow tab, newline, carriage return
+    }).length;
+    
+    const nonPrintableRatio = nonPrintableCount / content.length;
+    return nonPrintableRatio > 0.1; // If more than 10% non-printable, consider binary
+  }
+
   private splitText(text: string, chunkSize: number, chunkOverlap: number): string[] {
+    // Safety checks to prevent RangeError
+    if (!text || text.length === 0) {
+      return [];
+    }
+    
+    // Limit maximum text size to prevent memory issues
+    const MAX_TEXT_SIZE = 1024 * 1024; // 1MB limit
+    if (text.length > MAX_TEXT_SIZE) {
+      console.warn(`Text too large (${text.length} chars), truncating to ${MAX_TEXT_SIZE} chars`);
+      text = text.substring(0, MAX_TEXT_SIZE);
+    }
+    
+    // Ensure reasonable chunk parameters
+    chunkSize = Math.max(100, Math.min(chunkSize, 5000));
+    chunkOverlap = Math.max(0, Math.min(chunkOverlap, chunkSize / 2));
+    
     const chunks: string[] = [];
     let start = 0;
     
-    while (start < text.length) {
+    // Prevent infinite loops
+    let iterations = 0;
+    const maxIterations = Math.ceil(text.length / (chunkSize - chunkOverlap)) + 10;
+    
+    while (start < text.length && iterations < maxIterations) {
       const end = Math.min(start + chunkSize, text.length);
       const chunk = text.slice(start, end);
-      chunks.push(chunk.trim());
+      
+      if (chunk.trim().length > 0) {
+        chunks.push(chunk.trim());
+      }
+      
       start = end - chunkOverlap;
       
+      // Ensure we're making progress
+      if (start <= end - chunkSize && end < text.length) {
+        start = end;
+      }
+      
       if (start >= text.length) break;
+      iterations++;
     }
     
     return chunks.filter(chunk => chunk.length > 0);
