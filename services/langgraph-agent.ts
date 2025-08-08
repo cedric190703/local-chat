@@ -5,7 +5,7 @@ import { createDocumentSearchTool, createDocumentUploadTool, documentProcessor }
 
 export class LangGraphChatAgent {
   private model: ChatOllama;
-  private tools: any[];
+  private tools: Array<{ name: string; description: string; func: (...args: any[]) => Promise<string> }>;
 
   constructor(modelName: string = "llama3.2") {
     // Initialize the model

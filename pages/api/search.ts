@@ -25,9 +25,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     
     const $ = load(html);
 
-    const results: Array<{ title: string, url: string, snippet: string }> = [];
+    const results: Array<{ title: string; url: string; snippet: string }> = [];
 
-    $('.result').each((i: number, element: any) => {
+    $('.result').each((i: number, element) => {
       if (i >= Number(numResults)) return false;
 
       const $element = $(element);
@@ -42,5 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     res.status(200).json({ results });
   } catch (error) {
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    res.status(500).json({ error: `Search handler failed: ${message}` });
   }
 }

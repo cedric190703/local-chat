@@ -2,6 +2,8 @@
 
 import React from "react"
 import Image from "next/image"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
 import { Bot, Copy, Check, Edit, Send, X, User, Save } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { Message } from "@/types/chat"
@@ -284,7 +286,8 @@ function MarkdownRenderer({ content }: { content: string }) {
 export function ChatMessages({ 
   messages,
   onEditMessage,
-  onResendMessage
+  onResendMessage,
+  onEditAIMessage
 }: ChatMessagesProps) {
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editContent, setEditContent] = React.useState('')
@@ -468,8 +471,64 @@ export function ChatMessages({
                     {message.content}
                   </div>
                 ) : (
-                  <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0">
-                    <MarkdownRenderer content={message.content} />
+                  <div className="prose prose-sm md:prose-base lg:prose-lg max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        code({ inline, className, children, ...props }: any) {
+                          const match = /language-(\w+)/.exec(className || "")
+                          const language = match?.[1] || ""
+                          if (inline) {
+                            return (
+                              <code className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground" {...props}>
+                                {children}
+                              </code>
+                            )
+                          }
+                          const content = String(children).replace(/\n$/, "")
+                          const highlighted = highlightSyntax(content, language)
+                          const codeId = `code-${message.id}`
+                          return (
+                            <div className="relative group border rounded-lg overflow-hidden">
+                              <div className="flex items-center justify-between px-3 py-1.5 border-b bg-muted/50">
+                                <span className="font-mono text-xs text-muted-foreground">{language || 'text'}</span>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-7 px-2"
+                                  onClick={async () => {
+                                    await navigator.clipboard.writeText(content)
+                                  }}
+                                >
+                                  <Copy className="h-3.5 w-3.5" />
+                                </Button>
+                              </div>
+                              <pre className="p-3 overflow-x-auto text-sm leading-relaxed" style={{ backgroundColor: draculaColors.background }}>
+                                <code
+                                  className="font-mono"
+                                  dangerouslySetInnerHTML={{ __html: highlighted }}
+                                />
+                              </pre>
+                            </div>
+                          )
+                        },
+                        a({ children, href, ...props }: any) {
+                          return (
+                            <a href={href} target="_blank" rel="noopener noreferrer" className="text-primary underline hover:text-primary/80" {...props}>
+                              {children}
+                            </a>
+                          )
+                        },
+                        img({ alt, src }: any) {
+                          if (!src || typeof src !== 'string') return null
+                          return (
+                            <Image src={src} alt={alt || ''} width={500} height={300} className="max-w-full h-auto rounded border" />
+                          )
+                        },
+                      }}
+                    >
+                      {message.content}
+                    </ReactMarkdown>
                     {message.isStreaming && (
                       <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
                     )}

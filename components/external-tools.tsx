@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils"
 
 const externalTools = [
   { id: "web-search", name: "Web Search", description: "Search the web for current information", icon: "🌐" },
-  { id: "mcp", name: "MCP", description: "Model Context Protocol integration", icon: "🔗", isBeta: true },
+  { id: "other", name: "Tools to add", description: "Other tools to add", icon: "🔗", isBeta: true },
 ]
 
 interface ExternalToolsProps {
@@ -18,8 +18,8 @@ interface ExternalToolsProps {
 
 export function ExternalTools({ selectedTool, onSelect }: ExternalToolsProps) {
   const handleToolClick = (toolId: string) => {
-    if (toolId === "mcp") {
-      alert("MCP is currently in beta and not implemented.")
+    if (toolId === "other") {
+      alert("You could integrate other tools.")
       return
     }
     if (selectedTool === toolId) {

@@ -2,6 +2,13 @@ import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { load } from "cheerio";
 
+interface SearchResult {
+  title: string;
+  url: string;
+  snippet: string;
+  detailedContent?: string;
+}
+
 const WebSearchInputSchema = z.object({
   query: z.string().describe("The search query to execute"),
   numResults: z.number().optional().default(5).describe("Number of results to return"),
@@ -21,14 +28,14 @@ export const webSearchTool = new DynamicStructuredTool({
         throw new Error(`Search request failed: ${response.status}`);
       }
 
-      const { results } = await response.json();
+      const { results } = (await response.json()) as { results: SearchResult[] };
 
       if (!results || results.length === 0) {
         return `No search results found for query: "${query}"`;
       }
 
       // Scrape each result for more detailed content
-      const detailedResults = await Promise.all(results.map(async (result: any) => {
+      const detailedResults = await Promise.all(results.map(async (result: SearchResult) => {
         try {
           const scrapedContent = await webScrapeTool.invoke({ url: result.url, maxLength: 500 });
           return {
@@ -43,7 +50,7 @@ export const webSearchTool = new DynamicStructuredTool({
         }
       }));
 
-      const formattedResults = detailedResults.map((result: any, index: number) =>
+      const formattedResults = detailedResults.map((result: SearchResult, index: number) =>
         `${index + 1}. **${result.title}**\n   URL: ${result.url}\n   Summary: ${result.snippet}\n   Detailed Content: ${result.detailedContent}\n`
       ).join('\n');
 

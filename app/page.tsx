@@ -36,6 +36,7 @@ export default function LLMInterface() {
     createNewChat,
     deleteChat,
     sendMessage,
+    editAndResendMessage,
     stopGeneration
   } = useChat()
 
@@ -49,63 +50,20 @@ export default function LLMInterface() {
     removeFile,
   } = useFileUpload()
 
-  const [messages, setMessages] = useState<Message[]>([]) // State to hold chat messages
-
-  // Handle message sending
-  // This function is called when the user sends a message
-  /**
-   * 
-   * @param id : The ID of the message to edit
-   * @param newContent : The new content for the message
-   * @returns void
-   */
+  // Edit a user message and resend using chat state
   const handleEditMessage = (id: string, newContent: string) => {
-    setMessages(prev => {
-      const index = prev.findIndex(m => m.id === id)
-      if (index === -1) return prev
-      const updated = [...prev]
-      updated[index] = { ...updated[index], content: newContent }
-      return updated
-    })
+    if (!selectedModel) return
+    editAndResendMessage(id, newContent, selectedModel)
   }
 
-  // Handle message resending
-  // This function is called when the user wants to resend a message
-  /**
-   * 
-   * @param id : The ID of the message to resend
-   * @param newContent : The new content for the message
-   * @returns void
-   */
+  // Resend with modified content
   const handleResendMessage = (id: string, newContent: string) => {
-    const message = messages.find(m => m.id === id)
-    if (!message) return
-    setMessages(prev => {
-      const index = prev.findIndex(m => m.id === id)
-      if (index === -1) return prev
-      const updated = [...prev]
-      updated[index] = { ...updated[index], content: newContent }
-      return updated
-    })
-    sendMessage(newContent, selectedModel)
+    if (!selectedModel) return
+    editAndResendMessage(id, newContent, selectedModel)
   }
 
-  // Handle AI message editing
-  // This function is called when the user edits an AI message
-  /**
-   * @param id : The ID of the AI message to edit
-   * @param newContent : The new content for the AI message
-   * @returns void
-   */
-  const handleEditAIMessage = (id: string, newContent: string) => {
-    setMessages(prev => {
-      const index = prev.findIndex(m => m.id === id)
-      if (index === -1) return prev
-      const updated = [...prev]
-      updated[index] = { ...updated[index], content: newContent }
-      return updated
-    })
-  }
+  // Optional: editing AI text locally is not persisted to chat history; omit for now
+  const handleEditAIMessage = (_id: string, _newContent: string) => {}
 
   useEffect(() => {
     const checkOllama = async () => {
@@ -171,7 +129,7 @@ export default function LLMInterface() {
         enhancedChatService.setWebSearchEnabled(true);
         const response = await enhancedChatService.streamMessage(
           prompt,
-          activeChat,
+          activeChat ?? 'default',
           selectedModel
         );
         await sendMessage(prompt, selectedModel, response);

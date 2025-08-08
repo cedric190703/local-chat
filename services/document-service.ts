@@ -146,7 +146,7 @@ export const createDocumentSearchTool = (processor: DocumentProcessor) => new Dy
         return `No relevant documents found for query: "${query}"`;
       }
 
-      const formattedResults = results.map((result: any, index: number) => 
+      const formattedResults = results.map((result: DocumentChunk, index: number) => 
         `${index + 1}. **Source:** ${result.metadata.source} (Chunk ${result.metadata.chunkIndex + 1}/${result.metadata.totalChunks})\n` +
         `   **Content:** ${result.content.substring(0, 300)}${result.content.length > 300 ? '...' : ''}\n`
       ).join('\n');

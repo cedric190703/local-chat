@@ -1,4 +1,4 @@
-interface OllamaResponse<T = any> {
+interface OllamaResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
@@ -154,7 +154,7 @@ class OllamaService {
 
         for (const line of lines) {
           try {
-            const progress = JSON.parse(line)
+            const progress = JSON.parse(line) as PullProgress
             if (onProgress) onProgress(progress)
           } catch (e) {
             console.error('Error parsing pull progress:', e)
@@ -217,7 +217,7 @@ class OllamaService {
 
         for (const line of lines) {
           try {
-            const parsed = JSON.parse(line)
+            const parsed = JSON.parse(line) as { response?: string }
             if (parsed.response) {
               fullResponse += parsed.response
               onToken(parsed.response)

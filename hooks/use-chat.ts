@@ -25,7 +25,7 @@ export interface UseChatReturn {
   setActiveChat: (chatId: string) => void
   createNewChat: (options?: { model?: string; title?: string }) => Chat
   deleteChat: (chatId: string) => void
-  sendMessage: (content: string, model: string) => Promise<void>
+  sendMessage: (content: string, model: string, initialResponse?: string) => Promise<void>
   clearChat: (chatId: string) => void
   updateChatTitle: (chatId: string, title: string) => void
   regenerateLastMessage: (model: string) => Promise<void>
