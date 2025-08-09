@@ -13,6 +13,7 @@ import {
   Upload,
   X,
   AlertCircle,
+  Search,
   Loader2
 } from "lucide-react";
 import type { UploadedFile } from "@/types/chat";
@@ -33,6 +34,7 @@ interface PromptInputProps {
   onDragLeave: (e: React.DragEvent) => void;
   onDrop: (e: React.DragEvent) => void;
   isGenerating?: boolean;
+  isSearching?: boolean;
   onStopGeneration?: () => void;
   selectedModel?: string;
   ollamaStatus?: 'checking' | 'connected' | 'disconnected';
@@ -54,6 +56,7 @@ export function PromptInput({
   onDragLeave,
   onDrop,
   isGenerating = false,
+   isSearching = false,
   onStopGeneration,
   selectedModel,
   ollamaStatus = 'checking',
@@ -84,11 +87,11 @@ export function PromptInput({
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      if (!disabled && !isGenerating && !isEnhancing && prompt.trim()) {
+      if (!disabled && !isGenerating && !isSearching && !isEnhancing && prompt.trim()) {
         onSendMessage();
       }
     }
-  }, [disabled, isGenerating, isEnhancing, onSendMessage, prompt]);
+  }, [disabled, isGenerating, isSearching, isEnhancing, onSendMessage, prompt]);
 
   const handleUploadClick = useCallback(() => {
     fileInputRef.current?.click();
@@ -115,32 +118,62 @@ export function PromptInput({
     setIsFocused(false);
   }, []);
 
-  const canSend = !disabled && !isGenerating && !isEnhancing && prompt.trim() && selectedModel;
-  const showStopButton = isGenerating && onStopGeneration;
-  const isInputDisabled = disabled || isEnhancing;
+  const canSend = !disabled && !isGenerating && !isSearching && !isEnhancing && prompt.trim() && selectedModel;
+  const showStopButton = (isGenerating || isSearching) && onStopGeneration;
+  const isInputDisabled = disabled || isEnhancing || isSearching || ollamaStatus === 'disconnected';
 
   return (
     <div className="space-y-4">
       {/* Uploaded Files */}
       {uploadedFiles.length > 0 && (
         <div className="flex flex-wrap gap-2">
-          {uploadedFiles.map((file) => (
-            <Badge
-              key={file.id}
-              variant="secondary"
-              className="flex items-center gap-2 py-1 px-2 rounded-full"
-            >
-              <span className="text-xs truncate max-w-[120px]">{file.name}</span>
-              <button
-                type="button"
-                className="h-4 w-4 p-0 rounded-full flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors"
-                onClick={() => onRemoveFile(file.id)}
-                aria-label={`Remove ${file.name}`}
+          {uploadedFiles.map((file) => {
+            const getFileIcon = (file: UploadedFile) => {
+              if (file.type.startsWith('image/')) return '🖼️'
+              if (file.type.startsWith('audio/')) return '🎵'
+              if (file.type.startsWith('video/')) return '🎥'
+              if (file.type === 'application/pdf') return '📄'
+              if (file.type === 'application/json') return '📋'
+              if (file.name.endsWith('.md')) return '📝'
+              if (file.name.endsWith('.py')) return '🐍'
+              if (file.name.endsWith('.js') || file.name.endsWith('.ts')) return '⚡'
+              if (file.name.endsWith('.html')) return '🌐'
+              if (file.name.endsWith('.css')) return '🎨'
+              return '📄'
+            }
+            
+            const getFileDescription = (file: UploadedFile) => {
+              if (file.type.startsWith('image/')) return 'Image - Can be analyzed by vision models'
+              if (file.type.startsWith('text/') || file.name.endsWith('.md') || file.name.endsWith('.txt')) return 'Text document - Content available to model'
+              if (file.name.endsWith('.py') || file.name.endsWith('.js') || file.name.endsWith('.ts')) return 'Code file - Available for analysis'
+              if (file.type === 'application/pdf') return 'PDF document - Will be processed for content'
+              return 'File uploaded - Processing for model integration'
+            }
+
+            return (
+              <div
+                key={file.id}
+                className="flex items-center gap-2 py-2 px-3 rounded-lg border bg-muted/50 hover:bg-muted/70 transition-colors"
+                title={getFileDescription(file)}
               >
-                <X className="h-3 w-3" />
-              </button>
-            </Badge>
-          ))}
+                <span className="text-sm">{getFileIcon(file)}</span>
+                <div className="flex flex-col">
+                  <span className="text-xs font-medium truncate max-w-[120px]">{file.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {(file.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="h-5 w-5 p-0 rounded-full flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground transition-colors ml-1"
+                  onClick={() => onRemoveFile(file.id)}
+                  aria-label={`Remove ${file.name}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -195,6 +228,31 @@ export function PromptInput({
                   <Sparkles className="h-5 w-5 text-primary" />
                 </motion.div>
                 <span className="text-sm font-medium">Enhancing your prompt...</span>
+              </div>
+            </motion.div>
+          )}
+          {isSearching && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 flex items-center justify-center bg-background/90 z-10 rounded-xl backdrop-blur-sm"
+            >
+              <div className="flex items-center gap-2">
+                <motion.div
+                  animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.8, 1, 0.8],
+                  }}
+                  transition={{
+                    repeat: Infinity,
+                    duration: 1.5,
+                    ease: "easeInOut",
+                  }}
+                >
+                  <Search className="h-5 w-5 text-primary" />
+                </motion.div>
+                <span className="text-sm font-medium">Searching external tools...</span>
               </div>
             </motion.div>
           )}

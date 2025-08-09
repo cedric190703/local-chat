@@ -1,10 +1,20 @@
 "use client"
 
-import React from "react"
-import Image from "next/image"
-import { Bot, Copy, Check, Edit, Send, X, User } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import type { Message } from "@/types/chat"
+import React from 'react'
+import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { Bot, Copy, Check, Edit, X, Save, Send, User } from 'lucide-react'
+import { usePreferences } from '@/hooks/use-preferences'
+import { useTheme } from 'next-themes'
+import { Message } from '@/hooks/use-chat'
+
+// File indicator type
+interface FileIndicator {
+  name: string;
+  type: string;
+  icon: string;
+  size?: string;
+}
 
 interface ChatMessagesProps {
   messages: Message[]
@@ -13,64 +23,219 @@ interface ChatMessagesProps {
   onEditAIMessage?: (id: string, newContent: string) => void
 }
 
-// Dracula theme colors with enhanced contrast
-const draculaColors = {
-  background: "#282a36",
-  currentLine: "#44475a",
-  foreground: "#f8f8f2",
-  comment: "#6272a4",
-  cyan: "#8be9fd",
-  green: "#50fa7b",
-  orange: "#ffb86c",
-  pink: "#ff79c6",
-  purple: "#bd93f9",
-  red: "#ff5555",
-  yellow: "#f1fa8c",
+// Code theme color definitions
+const codeThemes = {
+  dracula: {
+    background: "#282a36",
+    currentLine: "#44475a",
+    foreground: "#f8f8f2",
+    comment: "#6272a4",
+    cyan: "#8be9fd",
+    green: "#50fa7b",
+    orange: "#ffb86c",
+    pink: "#ff79c6",
+    purple: "#bd93f9",
+    red: "#ff5555",
+    yellow: "#f1fa8c",
+  },
+  github: {
+    background: "#ffffff",
+    currentLine: "#f6f8fa",
+    foreground: "#24292f",
+    comment: "#6a737d",
+    cyan: "#0969da",
+    green: "#1a7f37",
+    orange: "#d1242f",
+    pink: "#8250df",
+    purple: "#8250df",
+    red: "#cf222e",
+    yellow: "#bf8700",
+  },
+  vscode: {
+    background: "#1e1e1e",
+    currentLine: "#2d2d30",
+    foreground: "#d4d4d4",
+    comment: "#6a9955",
+    cyan: "#4ec9b0",
+    green: "#6a9955",
+    orange: "#ce9178",
+    pink: "#c586c0",
+    purple: "#c586c0",
+    red: "#f44747",
+    yellow: "#dcdcaa",
+  }
 }
 
-// Syntax highlighting function
-const highlightSyntax = (code: string, language: string) => {
+// Function to extract file indicators from message content
+function getFileIndicators(content: string): FileIndicator[] {
+  const indicators: FileIndicator[] = [];
+  
+  // Check for common file patterns in the content
+  const filePatterns = [
+    /IMAGE_FILE:\s*([^\n]+)/g,
+    /DOCUMENT_FILE:\s*([^\n]+)/g,
+    /BINARY_FILE:\s*([^\n]+)/g,
+  ];
+  
+  for (const pattern of filePatterns) {
+    let match;
+    while ((match = pattern.exec(content)) !== null) {
+      const fileName = match[1].trim();
+      const extension = fileName.split('.').pop()?.toLowerCase() || 'file';
+      const icon = getFileIcon(extension);
+      
+      // Extract size if available
+      const sizeMatch = content.match(new RegExp(`Size:\\s*([\\d.]+\\s*[KMGT]?B)`, 'i'));
+      const size = sizeMatch ? sizeMatch[1] : undefined;
+      
+      indicators.push({
+        name: fileName,
+        type: extension,
+        icon: icon,
+        size: size,
+      });
+    }
+  }
+  
+  // Remove duplicates
+  const uniqueIndicators = indicators.filter((indicator, index, self) => 
+    index === self.findIndex(i => i.name === indicator.name)
+  );
+  
+  return uniqueIndicators;
+}
+
+// Function to get appropriate icon for file type
+function getFileIcon(extension: string): string {
+  const iconMap: Record<string, string> = {
+    // Images
+    'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'bmp': '🖼️', 'svg': '🖼️', 'webp': '🖼️',
+    // Documents
+    'pdf': '📄', 'doc': '📄', 'docx': '📄', 'txt': '📄', 'md': '📝', 'readme': '📖',
+    // Code files
+    'js': '⚡', 'jsx': '⚡', 'ts': '⚡', 'tsx': '⚡',
+    'py': '🐍', 'python': '🐍',
+    'html': '🌐', 'htm': '🌐',
+    'css': '🎨', 'scss': '🎨', 'sass': '🎨',
+    'json': '📋', 'xml': '📋', 'yaml': '📋', 'yml': '📋',
+    // Data files
+    'csv': '📊', 'xlsx': '📊', 'xls': '📊',
+    'sql': '🗄️', 'db': '🗄️', 'sqlite': '🗄️',
+    // Config files
+    'env': '⚙️', 'config': '⚙️', 'conf': '⚙️',
+    'dockerfile': '🐳', 'docker': '🐳',
+    'gitignore': '📂', 'git': '📂',
+    // Scripts
+    'sh': '📜', 'bash': '📜', 'zsh': '📜',
+    'bat': '📜', 'cmd': '📜', 'ps1': '📜',
+    // Logs
+    'log': '📋', 'logs': '📋',
+    // Archives
+    'zip': '📦', 'rar': '📦', 'tar': '📦', 'gz': '📦',
+    // Audio/Video
+    'mp3': '🎵', 'wav': '🎵', 'mp4': '🎬', 'avi': '🎬',
+    // Default
+    'file': '📎',
+  };
+  
+  return iconMap[extension] || iconMap['file'];
+}
+
+// Enhanced syntax highlighting function
+const keywords = {
+  javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'default', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super', 'extends', 'static'],
+  python: ['def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'import', 'from', 'as', 'with', 'lambda', 'and', 'or', 'not', 'in', 'is', 'None', 'True', 'False', 'self', 'pass', 'break', 'continue'],
+  typescript: ['interface', 'type', 'enum', 'implements', 'extends', 'namespace', 'declare', 'public', 'private', 'protected', 'readonly', 'abstract'],
+  html: ['<!DOCTYPE', 'html', 'head', 'body', 'div', 'span', 'p', 'a', 'img', 'script', 'style', 'link', 'meta'],
+  css: ['@media', '@keyframes', '@import', '@font-face', 'margin', 'padding', 'color', 'background', 'font-size', 'display', 'position', 'width', 'height', 'border', 'flex', 'grid'],
+  cpp: [
+    'int', 'float', 'double', 'char', 'void', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'default', 'struct', 'class', 'public', 'private', 'protected', 'include', 'define', 'typedef', 'namespace', 'using', 'std', 'const', 'static', 'sizeof', 'malloc', 'free', 'printf', 'scanf', 'main'
+  ],
+  c: [
+    'int', 'float', 'double', 'char', 'void', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'default', 'struct', 'include', 'define', 'typedef', 'sizeof', 'malloc', 'free', 'printf', 'scanf', 'main'
+  ]
+}
+
+const highlightSyntax = (code: string, language: string, codeTheme: keyof typeof codeThemes = 'dracula') => {
   if (!language || language === 'text') return code
   
-  const keywords = {
-    javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'default', 'async', 'await', 'try', 'catch', 'throw'],
-    python: ['def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'import', 'from', 'as', 'with', 'lambda'],
-    typescript: ['interface', 'type', 'enum', 'implements', 'extends', 'namespace', 'declare'],
-    html: ['<!DOCTYPE html>', '<html', '<head', '<body', '<div', '<span', '<p', '<a', '<img', '<script', '<style'],
-    css: ['@media', '@keyframes', '@import', '@font-face', 'margin', 'padding', 'color', 'background', 'font-size', 'display', 'position']
+  const colors = codeThemes[codeTheme]
+
+  // Check if code is already HTML formatted (contains span tags with style attributes)
+  if (code.includes('<span style="color:')) {
+    // Code is already formatted, return as is
+    return code
   }
 
-  const langKeywords = keywords[language as keyof typeof keywords] || []
-  
-  return code.split('\n').map((line, i) => {
+  // Normalize C/C++ language names
+  const normalizedLanguage = (language === 'c' || language === 'cpp' || language === 'c++') ? 'cpp' : language
+  const langKeywords = keywords[normalizedLanguage as keyof typeof keywords] || []
+
+  return code.split('\n').map((line, lineIndex) => {
     let highlightedLine = line
-    
-    // Highlight keywords
+
+    // C/C++: highlight keywords and strings only, skip numbers/operators
+    if (normalizedLanguage === 'cpp') {
+      // Highlight keywords
+      langKeywords.forEach(keyword => {
+        const regex = new RegExp(`\\b${keyword}\\b(?![^<]*>)`, 'g')
+        highlightedLine = highlightedLine.replace(regex, `<span style="color: ${colors.pink}; font-weight: 500;">${keyword}</span>`)
+      })
+      // Highlight strings
+      highlightedLine = highlightedLine.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, `<span style="color: ${colors.green};">$&</span>`)
+      // Highlight comments
+      highlightedLine = highlightedLine.replace(/(\/\/.*$|\/\*[\s\S]*?\*\/)/g, `<span style="color: ${colors.comment}; font-style: italic;">$1</span>`)
+      return highlightedLine
+    }
+
+    // Highlight keywords (avoid re-highlighting already highlighted text)
     langKeywords.forEach(keyword => {
-      const regex = new RegExp(`\\b${keyword}\\b`, 'g')
-      highlightedLine = highlightedLine.replace(regex, `<span style="color: ${draculaColors.pink}">${keyword}</span>`)
+      const regex = new RegExp(`\\b${keyword}\\b(?![^<]*>)`, 'g')
+      highlightedLine = highlightedLine.replace(regex, `<span style="color: ${colors.pink}; font-weight: 500;">${keyword}</span>`)
     })
     
-    // Highlight strings
-    highlightedLine = highlightedLine.replace(/(['"])(.*?)\1/g, `<span style="color: ${draculaColors.green}">$1$2$1</span>`)
+    // Highlight strings (improved pattern to handle nested quotes better)
+    highlightedLine = highlightedLine.replace(/(?<!<[^>]*)(["'])((?:\\.|(?!\1)[^\\])*)\1/g, 
+      `<span style="color: ${colors.green};">$1$2$1</span>`)
     
-    // Highlight numbers
-    highlightedLine = highlightedLine.replace(/\b(\d+)\b/g, `<span style="color: ${draculaColors.purple}">$1</span>`)
+    // Highlight numbers (integers and floats)
+    highlightedLine = highlightedLine.replace(/\b(\d+\.?\d*)\b(?![^<]*>)/g, 
+      `<span style="color: ${colors.purple}; font-weight: 500;">$1</span>`)
     
-    // Highlight comments
+    // Highlight operators
+    highlightedLine = highlightedLine.replace(/([+\-*/%=<>!&|^~])/g, 
+      `<span style="color: ${colors.pink};">$1</span>`)
+    
+    // Language-specific comment highlighting
     if (language === 'javascript' || language === 'typescript' || language === 'css') {
-      highlightedLine = highlightedLine.replace(/\/\/.*|\/\*[\s\S]*?\*\//g, `<span style="color: ${draculaColors.comment}">$&</span>`)
-    }
-    if (language === 'python') {
-      highlightedLine = highlightedLine.replace(/#.*/g, `<span style="color: ${draculaColors.comment}">$&</span>`)
+      highlightedLine = highlightedLine.replace(/(\/\/.*$|\/\*[\s\S]*?\*\/)/g, 
+        `<span style="color: ${colors.comment}; font-style: italic;">$1</span>`)
     }
     
     return highlightedLine
   }).join('\n')
 }
 
-function MarkdownRenderer({ content }: { content: string }) {
+
+
+interface MarkdownRendererProps {
+  content: string
+  font?: 'sans' | 'serif' | 'mono'
+  size?: 'sm' | 'md' | 'lg'
+  theme?: 'light' | 'dark' | 'auto'
+  style?: 'default' | 'compact' | 'spacious'
+}
+
+function MarkdownRenderer({ 
+  content, 
+  font = 'sans', 
+  size = 'md', 
+  theme = 'auto',
+  style = 'default'
+}: MarkdownRendererProps) {
   const [copiedCode, setCopiedCode] = React.useState<string | null>(null)
+  const [showInsights, setShowInsights] = React.useState(false)
+  const { codeTheme: selectedCodeTheme } = usePreferences()
 
   const copyCode = async (code: string, id: string) => {
     await navigator.clipboard.writeText(code)
@@ -78,11 +243,125 @@ function MarkdownRenderer({ content }: { content: string }) {
     setTimeout(() => setCopiedCode(null), 2000)
   }
 
-  // Enhanced regex to handle markdown features
-  const parts = content.split(/(```[\s\S]*?```|`[^`]+`|!\[.*?\]\(.*?\)|\[.*?\]\(.*?\)|\*\*.*?\*\*|_.*?_|\n- .*?(?=\n)|^\* .*$(?:\n^\* .*$)*)/gm)
+  // Content analysis for insights
+  const analyzeContent = (content: string) => {
+    const codeBlocks = (content.match(/```[\s\S]*?```/g) || []).length
+    const inlineCode = (content.match(/`[^`]+`/g) || []).length
+    const links = (content.match(/\[.*?\]\(.*?\)/g) || []).length
+    const images = (content.match(/!\[.*?\]\(.*?\)/g) || []).length
+    const boldText = (content.match(/\*\*.*?\*\*/g) || []).length
+    const italicText = (content.match(/_.*?_/g) || []).length
+    const wordCount = content.split(/\s+/).filter(word => word.length > 0).length
+    const readingTime = Math.ceil(wordCount / 200) // Average reading speed: 200 words per minute
+    
+    return {
+      codeBlocks,
+      inlineCode,
+      links,
+      images,
+      boldText,
+      italicText,
+      wordCount,
+      readingTime
+    }
+  }
+
+  const insights = analyzeContent(content)
+
+  // Enhanced regex to handle markdown features including titles
+  const parts = content.split(/(```[\s\S]*?```|`[^`]+`|!\[.*?\]\(.*?\)|\[.*?\]\(.*\)|\*\*.*?\*\*|_.*?_|\n- .*?(?=\n)|^\* .*$(?:\n^\* .*$)*|^#{1,6} .+$)/gm)
+  
+  // Dynamic styling based on props
+  const fontClass = font === 'serif' ? 'font-serif' : font === 'mono' ? 'font-mono' : 'font-sans'
+  const sizeClass = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : 'text-base'
+  const spacingClass = style === 'compact' ? 'space-y-1' : style === 'spacious' ? 'space-y-6' : 'space-y-3'
+  const themeClass = theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : ''
   
   return (
-    <div className="space-y-3">
+    <div className={`${spacingClass} ${fontClass} ${sizeClass} ${themeClass}`}>
+      {/* Content Insights Panel */}
+      {showInsights && (
+        <div className={`mb-4 p-4 rounded-lg border shadow-sm ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : theme === 'light' ? 'bg-gray-50 border-gray-200' : 'bg-muted border-border'}`}>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="text-base">📊</span>
+              <h4 className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : theme === 'light' ? 'text-gray-800' : 'text-foreground'}`}>
+                Content Insights
+              </h4>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => setShowInsights(false)}
+              className={`h-7 w-7 p-0 rounded-full hover:bg-opacity-20 ${theme === 'dark' ? 'hover:bg-gray-600' : theme === 'light' ? 'hover:bg-gray-200' : 'hover:bg-muted'}`}
+              title="Close insights"
+            >
+              <X className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`} />
+            </Button>
+          </div>
+          <div className={`grid grid-cols-2 gap-3 ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'}`}>
+            <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <span className="text-sm">📝</span>
+              <span className="font-medium">Words:</span> 
+              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : theme === 'light' ? 'text-gray-900' : 'text-foreground'}`}>{insights.wordCount}</span>
+            </div>
+            <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <span className="text-sm">⏱️</span>
+              <span className="font-medium">Reading:</span> 
+              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : theme === 'light' ? 'text-gray-900' : 'text-foreground'}`}>{insights.readingTime}min</span>
+            </div>
+            {insights.codeBlocks > 0 && (
+              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+                <span className="text-sm">💻</span>
+                <span className="font-medium">Code blocks:</span> 
+                <span className={`font-semibold ${theme === 'dark' ? 'text-blue-400' : theme === 'light' ? 'text-blue-600' : 'text-primary'}`}>{insights.codeBlocks}</span>
+              </div>
+            )}
+            {insights.inlineCode > 0 && (
+              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+                <span className="text-sm">⌨️</span>
+                <span className="font-medium">Inline code:</span> 
+                <span className={`font-semibold ${theme === 'dark' ? 'text-purple-400' : theme === 'light' ? 'text-purple-600' : 'text-primary'}`}>{insights.inlineCode}</span>
+              </div>
+            )}
+            {insights.links > 0 && (
+              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+                <span className="text-sm">🔗</span>
+                <span className="font-medium">Links:</span> 
+                <span className={`font-semibold ${theme === 'dark' ? 'text-green-400' : theme === 'light' ? 'text-green-600' : 'text-primary'}`}>{insights.links}</span>
+              </div>
+            )}
+            {insights.images > 0 && (
+              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+                <span className="text-sm">🖼️</span>
+                <span className="font-medium">Images:</span> 
+                <span className={`font-semibold ${theme === 'dark' ? 'text-yellow-400' : theme === 'light' ? 'text-yellow-600' : 'text-primary'}`}>{insights.images}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+      
+      {/* Insights Toggle Button */}
+      {!showInsights && (insights.wordCount > 50 || insights.codeBlocks > 0 || insights.links > 0) && (
+        <div className={`${style === 'compact' ? 'mb-1' : style === 'spacious' ? 'mb-4' : 'mb-2'}`}>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setShowInsights(true)}
+            className={`${size === 'sm' ? 'h-6 text-xs px-2' : size === 'lg' ? 'h-8 text-sm px-4' : 'h-7 text-xs px-3'} transition-all duration-200 ${
+              theme === 'dark' ? 'border-gray-600 hover:bg-gray-700 text-gray-300' : 
+              theme === 'light' ? 'border-gray-300 hover:bg-gray-100 text-gray-700' : 
+              'border-border hover:bg-muted'
+            }`}
+            title="View content statistics and analysis"
+          >
+            <span className="mr-1">📊</span>
+            Show Insights
+          </Button>
+        </div>
+      )}
+      
       {parts.filter(part => part && part.trim() !== '').map((part, index) => {
         // Code blocks
         if (part.startsWith('```') && part.endsWith('```')) {
@@ -91,28 +370,69 @@ function MarkdownRenderer({ content }: { content: string }) {
           const language = lines[0].trim() || 'text'
           const code = lines.slice(1).join('\n').trim()
           const codeId = `code-${index}`
-          const highlightedCode = highlightSyntax(code, language)
+          const highlightedCode = highlightSyntax(code, language, selectedCodeTheme)
+          
+          // Dynamic styling based on theme and size
+          const codeBlockPadding = style === 'compact' ? 'p-2' : style === 'spacious' ? 'p-6' : 'p-4'
+          const headerPadding = style === 'compact' ? 'px-3 py-1.5' : style === 'spacious' ? 'px-5 py-3' : 'px-4 py-2'
+          const codeTextSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm'
+          const languageLabelSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'
+          
+          // Theme-based colors
+          const getCodeBlockTheme = () => {
+            if (theme === 'dark') {
+              return {
+                background: '#1a1a1a',
+                border: '#374151',
+                headerBg: '#111827',
+                headerBorder: '#374151',
+                languageColor: '#60a5fa',
+                textColor: '#e5e7eb'
+              }
+            } else if (theme === 'light') {
+              return {
+                background: '#f8fafc',
+                border: '#e2e8f0',
+                headerBg: '#f1f5f9',
+                headerBorder: '#e2e8f0',
+                languageColor: '#3b82f6',
+                textColor: '#1f2937'
+              }
+            } else {
+              const draculaTheme = codeThemes.dracula
+              return {
+                background: draculaTheme.background,
+                border: draculaTheme.comment,
+                headerBg: draculaTheme.currentLine,
+                headerBorder: draculaTheme.comment,
+                languageColor: draculaTheme.cyan,
+                textColor: draculaTheme.foreground
+              }
+            }
+          }
+          
+          const codeTheme = getCodeBlockTheme()
 
           return (
             <div key={index} className="relative group">
               <div 
                 className="rounded-lg overflow-hidden shadow-md border"
                 style={{
-                  backgroundColor: draculaColors.background,
-                  borderColor: draculaColors.comment
+                  backgroundColor: codeTheme.background,
+                  borderColor: codeTheme.border
                 }}
               >
                 <div 
-                  className="flex items-center justify-between px-4 py-2 border-b"
+                  className={`flex items-center justify-between ${headerPadding} border-b`}
                   style={{
-                    backgroundColor: draculaColors.currentLine,
-                    borderColor: draculaColors.comment
+                    backgroundColor: codeTheme.headerBg,
+                    borderColor: codeTheme.headerBorder
                   }}
                 >
                   <div className="flex items-center gap-2">
                     <span 
-                      className="font-mono text-xs font-medium"
-                      style={{ color: draculaColors.cyan }}
+                      className={`font-mono ${languageLabelSize} font-medium`}
+                      style={{ color: codeTheme.languageColor }}
                     >
                       {language}
                     </span>
@@ -122,44 +442,50 @@ function MarkdownRenderer({ content }: { content: string }) {
                     variant="ghost"
                     className="h-7 w-7 p-2 hover:bg-background/20"
                     style={{ 
-                      color: draculaColors.foreground,
+                      color: codeTheme.textColor,
                     }}
                     onClick={() => copyCode(code, codeId)}
                   >
                     {copiedCode === codeId ? (
-                      <Check className="h-3.5 w-3.5" style={{ color: draculaColors.green }} />
+                      <Check className="h-3.5 w-3.5" style={{ color: theme === 'dark' ? '#10b981' : theme === 'light' ? '#059669' : codeThemes.dracula.green }} />
                     ) : (
                       <Copy className="h-3.5 w-3.5" />
                     )}
                   </Button>
                 </div>
                 <pre 
-                  className="p-4 overflow-x-auto text-sm leading-relaxed"
+                  className={`${codeBlockPadding} overflow-x-auto ${codeTextSize} leading-relaxed font-mono`}
                   style={{ 
-                    backgroundColor: draculaColors.background
+                    backgroundColor: codeTheme.background,
+                    color: codeTheme.textColor
                   }}
-                >
-                  <code 
-                    className="font-mono"
-                    dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                  />
-                </pre>
+                  dangerouslySetInnerHTML={{ __html: highlightedCode }}
+                />
               </div>
             </div>
           )
         }
 
+
         // Inline code
         if (part.startsWith('`') && part.endsWith('`')) {
           const inlineCode = part.slice(1, -1)
+          const codePadding = style === 'compact' ? 'px-2 py-0.5' : style === 'spacious' ? 'px-4 py-1' : 'px-3 py-0.5'
+          const codeSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm'
+          
+          // Use selected code theme for inline code
+          const selectedTheme = codeThemes[selectedCodeTheme]
+          const inlineCodeStyle = {
+            backgroundColor: selectedTheme.currentLine,
+            color: selectedTheme.purple,
+            borderColor: selectedTheme.comment
+          }
+          
           return (
             <code
               key={index}
-              className="px-4 py-0.5 rounded-md text-sm font-mono bg-background border"
-              style={{
-                color: draculaColors.purple,
-                borderColor: draculaColors.comment
-              }}
+              className={`${codePadding} rounded-md ${codeSize} font-mono border`}
+              style={inlineCodeStyle}
             >
               {inlineCode}
             </code>
@@ -170,8 +496,9 @@ function MarkdownRenderer({ content }: { content: string }) {
         if (part.startsWith('![')) {
           const altText = part.match(/!\[(.*?)\]/)?.[1] || ''
           const src = part.match(/\((.*?)\)/)?.[1] || ''
+          const imageSpacing = style === 'compact' ? 'my-2' : style === 'spacious' ? 'my-6' : 'my-3'
           return (
-            <div key={index} className="my-3 rounded-lg overflow-hidden border">
+            <div key={index} className={`${imageSpacing} rounded-lg overflow-hidden border ${theme === 'dark' ? 'border-gray-700' : theme === 'light' ? 'border-gray-200' : 'border-border'}`}>
               <Image 
                 src={src} 
                 alt={altText} 
@@ -183,7 +510,7 @@ function MarkdownRenderer({ content }: { content: string }) {
                 }}
               />
               {altText && (
-                <div className="text-xs text-center p-2 text-muted-foreground bg-muted">
+                <div className={`text-xs text-center p-2 ${theme === 'dark' ? 'text-gray-400 bg-gray-800' : theme === 'light' ? 'text-gray-600 bg-gray-100' : 'text-muted-foreground bg-muted'}`}>
                   {altText}
                 </div>
               )}
@@ -195,13 +522,15 @@ function MarkdownRenderer({ content }: { content: string }) {
         if (part.startsWith('[') && part.includes('](')) {
           const text = part.match(/\[(.*?)\]/)?.[1] || ''
           const url = part.match(/\((.*?)\)/)?.[1] || ''
+          const linkColor = theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : theme === 'light' ? 'text-blue-600 hover:text-blue-500' : 'text-primary hover:text-primary/80'
           return (
             <a 
               key={index} 
               href={url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-primary underline hover:text-primary/80"
+              className={`${linkColor} underline transition-colors duration-200`}
+              title={url}
             >
               {text || url}
             </a>
@@ -211,8 +540,9 @@ function MarkdownRenderer({ content }: { content: string }) {
         // Bold text
         if (part.startsWith('**') && part.endsWith('**')) {
           const text = part.slice(2, -2)
+          const boldWeight = style === 'compact' ? 'font-medium' : 'font-semibold'
           return (
-            <strong key={index} className="font-semibold">
+            <strong key={index} className={`${boldWeight} ${theme === 'dark' ? 'text-gray-100' : theme === 'light' ? 'text-gray-900' : ''}`}>
               {text}
             </strong>
           )
@@ -222,10 +552,48 @@ function MarkdownRenderer({ content }: { content: string }) {
         if (part.startsWith('_') && part.endsWith('_')) {
           const text = part.slice(1, -1)
           return (
-            <em key={index} className="italic">
+            <em key={index} className={`italic ${theme === 'dark' ? 'text-gray-200' : theme === 'light' ? 'text-gray-800' : ''}`}>
               {text}
             </em>
           )
+        }
+
+        // Markdown titles (h1-h6)
+        if (part.match(/^#{1,6} .+$/)) {
+          const level = part.match(/^(#{1,6})/)?.[1].length || 1
+          const text = part.replace(/^#{1,6} /, '')
+          
+          const getTitleStyles = (level: number) => {
+            const baseStyles = 'font-bold leading-tight'
+            
+            switch (level) {
+              case 1: return `text-2xl ${baseStyles} mb-4 mt-6 border-b border-border pb-2`
+              case 2: return `text-xl ${baseStyles} mb-3 mt-5`
+              case 3: return `text-lg ${baseStyles} mb-2 mt-4`
+              case 4: return `text-base ${baseStyles} mb-2 mt-3`
+              case 5: return `text-sm ${baseStyles} mb-1 mt-2`
+              case 6: return `text-xs ${baseStyles} mb-1 mt-2`
+              default: return `text-base ${baseStyles} mb-2 mt-3`
+            }
+          }
+          
+          // Render appropriate heading level
+          switch (level) {
+            case 1:
+              return <h1 key={index} className={getTitleStyles(level)}>{text}</h1>
+            case 2:
+              return <h2 key={index} className={getTitleStyles(level)}>{text}</h2>
+            case 3:
+              return <h3 key={index} className={getTitleStyles(level)}>{text}</h3>
+            case 4:
+              return <h4 key={index} className={getTitleStyles(level)}>{text}</h4>
+            case 5:
+              return <h5 key={index} className={getTitleStyles(level)}>{text}</h5>
+            case 6:
+              return <h6 key={index} className={getTitleStyles(level)}>{text}</h6>
+            default:
+              return <h3 key={index} className={getTitleStyles(level)}>{text}</h3>
+          }
         }
 
         // Lists
@@ -281,14 +649,54 @@ function MarkdownRenderer({ content }: { content: string }) {
   )
 }
 
-export function ChatMessages({ 
+export function ChatMessages({
+ 
   messages,
   onEditMessage,
-  onResendMessage
+  onResendMessage,
+  onEditAIMessage
 }: ChatMessagesProps) {
+  const { codeTheme, markdownFont, markdownSize, markdownTheme, markdownStyle } = usePreferences()
+  const { theme: appTheme } = useTheme()
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editContent, setEditContent] = React.useState('')
   const [copiedMessageId, setCopiedMessageId] = React.useState<string | null>(null)
+
+  // Resolve the effective theme for markdown rendering
+  const [effectiveTheme, setEffectiveTheme] = React.useState<'light' | 'dark' | 'auto'>(() => {
+    if (markdownTheme === 'auto') {
+      if (appTheme === 'system') {
+        return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+      }
+      return appTheme === 'dark' ? 'dark' : 'light'
+    }
+    return markdownTheme
+  })
+
+  React.useEffect(() => {
+    const updateEffectiveTheme = () => {
+      if (markdownTheme === 'auto') {
+        if (appTheme === 'system') {
+          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+          setEffectiveTheme(isDark ? 'dark' : 'light')
+        } else {
+          setEffectiveTheme(appTheme === 'dark' ? 'dark' : 'light')
+        }
+      } else {
+        setEffectiveTheme(markdownTheme)
+      }
+    }
+
+    updateEffectiveTheme()
+
+    // Listen for system theme changes when using auto theme
+    if (markdownTheme === 'auto' && appTheme === 'system') {
+      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+      const handleChange = () => updateEffectiveTheme()
+      mediaQuery.addEventListener('change', handleChange)
+      return () => mediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [markdownTheme, appTheme])
 
   const handleStartEdit = (message: Message) => {
     setEditingId(message.id)
@@ -408,14 +816,6 @@ export function ChatMessages({
                       <Copy className="h-3.5 w-3.5" />
                     )}
                   </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    onClick={() => handleStartEdit(message)}
-                  >
-                    <Edit className="h-3.5 w-3.5" />
-                  </Button>
                 </div>
               )}
             </div>
@@ -464,12 +864,152 @@ export function ChatMessages({
                 </div>
               ) : (
                 message.role === "user" ? (
-                  <div className="whitespace-pre-wrap">
-                    {message.content}
+                  <div className="space-y-3">
+                    {/* File Input Section - Clearly linked to the message below */}
+                    {(() => {
+                      // Use files from message data instead of parsing content
+                      const messageFiles = message.files || [];
+                      if (messageFiles.length > 0) {
+                        return (
+                          <div className="relative">
+                            {/* File Input Header with clear connection indicator */}
+                            <div className={`flex items-center gap-2 ${markdownStyle === 'compact' ? 'mb-2' : markdownStyle === 'spacious' ? 'mb-4' : 'mb-3'}`}>
+                              <div className={`flex items-center gap-1.5 font-semibold text-muted-foreground bg-muted/50 rounded-full border ${
+                                markdownSize === 'sm' ? 'text-xs px-2 py-0.5' : 
+                                markdownSize === 'lg' ? 'text-sm px-3 py-1.5' : 
+                                'text-xs px-2.5 py-1'
+                              }`}>
+                                <span className={markdownSize === 'sm' ? 'text-xs' : markdownSize === 'lg' ? 'text-base' : 'text-sm'}>📎</span>
+                                <span>File Input ({messageFiles.length})</span>
+                              </div>
+                              <div className="flex-1 h-px bg-border"></div>
+                              <div className="w-2 h-2 bg-primary/60 rounded-full"></div>
+                            </div>
+                            
+                            {/* File Cards with enhanced visual connection */}
+                            <div className={`grid gap-2 ${markdownStyle === 'compact' ? 'mb-2' : markdownStyle === 'spacious' ? 'mb-6' : 'mb-4'}`}>
+                              {messageFiles.map((file, index: number) => (
+                                <div
+                                  key={index}
+                                  className={`group relative flex items-center rounded-lg bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/20 hover:border-primary/30 transition-all duration-200 ${
+                                    markdownStyle === 'compact' ? 'gap-2 p-2' : 
+                                    markdownStyle === 'spacious' ? 'gap-4 p-4' : 
+                                    'gap-3 p-3'
+                                  }`}
+                                  title={`File: ${file.name} (${file.type}) ${file.size ? `- ${file.size}` : ''}`}
+                                >
+                                  {/* Connection line to message */}
+                                  <div className="absolute -right-2 top-1/2 w-4 h-px bg-primary/40 group-hover:bg-primary/60 transition-colors"></div>
+                                  
+                                  {/* File icon with enhanced styling */}
+                                  <div className={`flex-shrink-0 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center ${
+                                    markdownSize === 'sm' ? 'w-8 h-8' : 
+                                    markdownSize === 'lg' ? 'w-12 h-12' : 
+                                    'w-10 h-10'
+                                  }`}>
+                                    <span className={`${
+                                      markdownSize === 'sm' ? 'text-lg' : 
+                                      markdownSize === 'lg' ? 'text-2xl' : 
+                                      'text-xl'
+                                    }`}>{file.icon || '📄'}</span>
+                                  </div>
+                                  
+                                  {/* File information */}
+                                  <div className="flex-1 min-w-0">
+                                    <div className={`flex items-center gap-2 ${markdownStyle === 'compact' ? 'mb-0.5' : 'mb-1'}`}>
+                                      <span className={`font-semibold text-foreground truncate max-w-[200px] ${
+                                        markdownSize === 'sm' ? 'text-sm' : 
+                                        markdownSize === 'lg' ? 'text-lg' : 
+                                        'text-base'
+                                      }`}>
+                                        {file.name}
+                                      </span>
+                                      <span className={`px-1.5 py-0.5 rounded bg-primary/20 text-primary font-medium ${
+                                        markdownSize === 'sm' ? 'text-xs' : 
+                                        markdownSize === 'lg' ? 'text-sm' : 
+                                        'text-xs'
+                                      }`}>
+                                        {file.type.toUpperCase()}
+                                      </span>
+                                    </div>
+                                    <div className={`flex items-center gap-2 text-muted-foreground ${
+                                      markdownSize === 'sm' ? 'text-xs' : 
+                                      markdownSize === 'lg' ? 'text-sm' : 
+                                      'text-xs'
+                                    }`}>
+                                      {file.size && (
+                                        <span className="flex items-center gap-1">
+                                          <span>📊</span>
+                                          <span>{file.size}</span>
+                                        </span>
+                                      )}
+                                      <span className="flex items-center gap-1">
+                                        <span>🔗</span>
+                                        <span>Linked to prompt below</span>
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Visual connection to message */}
+                            <div className="absolute -bottom-2 left-4 w-px h-4 bg-gradient-to-b from-primary/40 to-transparent"></div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })()}
+                    {/* Apply markdown renderer to user messages too */}
+                    <div className={`prose ${
+                        markdownSize === 'sm' ? 'prose-sm' : markdownSize === 'lg' ? 'prose-lg' : 'prose-base'
+                      } max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0`}>
+                      <MarkdownRenderer 
+                        content={(() => {
+                          let cleanContent = message.content;
+                          
+                          // Remove all file-related content blocks completely
+                          cleanContent = cleanContent.replace(/IMAGE_FILE:[\s\S]*?(?=\n(?![A-Z_]+:)|$)/g, '');
+                          cleanContent = cleanContent.replace(/DOCUMENT_FILE:[\s\S]*?(?=\n(?![A-Z_]+:)|$)/g, '');
+                          cleanContent = cleanContent.replace(/BINARY_FILE:[\s\S]*?(?=\n(?![A-Z_]+:)|$)/g, '');
+                          
+                          // Remove any remaining file metadata patterns
+                          cleanContent = cleanContent.replace(/Type:\s*[^\n]*\n?/g, '');
+                          cleanContent = cleanContent.replace(/Size:\s*[^\n]*\n?/g, '');
+                          cleanContent = cleanContent.replace(/Base64:\s*[^\n]*\n?/g, '');
+                          cleanContent = cleanContent.replace(/Content:\s*[\s\S]*?(?=\n[A-Z]|$)/g, '');
+                          cleanContent = cleanContent.replace(/Description:\s*[^\n]*\n?/g, '');
+                          
+                          // Clean up excessive whitespace and empty lines
+                          cleanContent = cleanContent.replace(/\n\s*\n\s*\n+/g, '\n\n');
+                          cleanContent = cleanContent.replace(/^\s+|\s+$/g, '');
+                          
+                          // If content is empty or only contains file references, show placeholder
+                          if (!cleanContent || cleanContent.length < 3) {
+                            const fileCount = message.files?.length || 0;
+                            return fileCount > 0 ? "Files uploaded for analysis" : "Message";
+                          }
+                          
+                          return cleanContent;
+                        })()}
+                        font={markdownFont}
+                        size={markdownSize}
+                        theme={effectiveTheme}
+                        style={markdownStyle}
+                      />
+                    </div>
                   </div>
                 ) : (
-                  <div className="prose prose-sm max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0">
-                    <MarkdownRenderer content={message.content} />
+                  <div className={`prose ${
+                      markdownSize === 'sm' ? 'prose-sm' : markdownSize === 'lg' ? 'prose-lg' : 'prose-base'
+                    } max-w-none dark:prose-invert prose-pre:bg-transparent prose-pre:p-0`}>
+                    <MarkdownRenderer 
+                      content={message.content} 
+                      font={markdownFont}
+                      size={markdownSize}
+                      theme={effectiveTheme}
+                      style={markdownStyle}
+                    />
                     {message.isStreaming && (
                       <span className="inline-block w-2 h-4 bg-primary ml-1 animate-pulse" />
                     )}

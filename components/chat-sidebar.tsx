@@ -58,41 +58,41 @@ export function ChatSidebar({
           <ScrollArea className="h-full px-3 py-2">
             <TabsList className="grid w-full grid-cols-1 gap-1 bg-transparent">
               {chats.map((chat) => (
-                <div key={chat.id} className="flex items-center gap-1 group">
+                <div key={chat.id} className="flex items-center gap-1 group relative">
                   <TabsTrigger
                     value={chat.id}
                     className={cn(
                       "flex-1 justify-start px-3 py-2 rounded-md",
                       "data-[state=active]:bg-primary/10 data-[state=active]:text-foreground",
                       "hover:bg-foreground/5 transition-colors",
-                      "border border-transparent data-[state=active]:border-primary/20"
+                      "border border-transparent data-[state=active]:border-primary/20",
+                      "pr-8" // Add right padding to make space for the delete button
                     )}
                   >
                     <MessageSquare className="h-4 w-4 mr-2 text-primary" />
-                    <span className="truncate">{chat.title}</span>
+                    <span className="truncate max-w-[calc(100%-40px)]">{chat.title}</span>
                   </TabsTrigger>
-                  {chats.length > 1 && (
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onDeleteChat(chat.id)
-                          }}
-                          className={cn(
-                            "h-8 w-8 p-0 text-foreground/40 hover:text-foreground",
-                            "opacity-0 group-hover:opacity-100 transition-opacity",
-                            "hover:bg-destructive/10 hover:text-destructive"
-                          )}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Delete chat</TooltipContent>
-                    </Tooltip>
-                  )}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          onDeleteChat(chat.id)
+                        }}
+                        className={cn(
+                          "h-8 w-8 p-0 text-foreground/40 hover:text-foreground",
+                          "absolute right-0", // Position absolutely
+                          "hover:bg-destructive/10 hover:text-destructive",
+                          "opacity-100 group-hover:opacity-100 transition-opacity" // Always show
+                        )}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete chat</TooltipContent>
+                  </Tooltip>
                 </div>
               ))}
             </TabsList>

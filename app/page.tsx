@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { PreferencesProvider } from "@/hooks/use-preferences"
 import { ChatSidebar } from "@/components/chat-sidebar"
 import { MainChatArea } from "@/components/main-chat-area"
 import { TopBar } from "@/components/top-bar"
@@ -12,30 +13,31 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { AlertCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import ollamaService from "@/services/ollama-service"
-import type { Message } from "@/types/chat"
-import { useMediaQuery } from "@/hooks/use-mobile"
 import { Sidebar, SidebarInset, useSidebar } from "@/components/ui/sidebar"
+import { enhancedChatService } from "@/services/agent-service"
 
 export default function LLMInterface() {
-  const [selectedModel, setSelectedModel] = useState("")
-  const [prompt, setPrompt] = useState("")
-  const [isRecording, setIsRecording] = useState(false)
-  const [showOllamaSetup, setShowOllamaSetup] = useState(false)
-  const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking')
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const isMobile = useMediaQuery()
-
-  const { theme, setTheme } = useTheme()
-  const { 
-    chats, 
-    activeChat, 
+  const [selectedModel, setSelectedModel] = useState("") // Selected model for the chat
+  const [prompt, setPrompt] = useState("") // User input prompt
+  const [isRecording, setIsRecording] = useState(false) // Flag for recording state
+  const [showOllamaSetup, setShowOllamaSetup] = useState(false) // Flag to show Ollama setup alert
+  const [ollamaStatus, setOllamaStatus] = useState<'checking' | 'connected' | 'disconnected'>('checking') // Ollama service status
+  const fileInputRef = useRef<HTMLInputElement>(null) // Reference for file input RAG
+  const [selectedTool, setSelectedTool] = useState<string | null>(null) // Selected external tool for the chat (e.g., web search)
+  const { theme, setTheme } = useTheme() // Custom hook for theme management
+  const [isSearching, setIsSearching] = useState(false);
+  const {
+    chats,
+    activeChat,
     isGenerating,
-    setActiveChat, 
-    createNewChat, 
-    deleteChat, 
+    setActiveChat,
+    createNewChat,
+    deleteChat,
     sendMessage,
-    stopGeneration 
+    editAndResendMessage,
+    stopGeneration
   } = useChat()
+
   const {
     uploadedFiles,
     isDragOver,
@@ -44,53 +46,24 @@ export default function LLMInterface() {
     handleDragLeave,
     handleDrop,
     removeFile,
+    clearFiles,
   } = useFileUpload()
 
-  const [messages, setMessages] = useState<Message[]>([])
-
+  // Edit a user message and resend using chat state
   const handleEditMessage = (id: string, newContent: string) => {
-    console.log("handleEditMessage called", { id, newContent });
-    setMessages(prev => {
-      const index = prev.findIndex(m => m.id === id)
-      if (index === -1) return prev
-      
-      const updated = [...prev.slice(0, index + 1)]
-      updated[index] = { ...updated[index], content: newContent }
-      console.log("Messages after handleEditMessage:", updated);
-      return updated
-    })
+    if (!selectedModel) return
+    editAndResendMessage(id, newContent, selectedModel)
   }
 
+  // Resend with modified content
   const handleResendMessage = (id: string, newContent: string) => {
-    console.log("handleResendMessage called", { id, newContent });
-    const message = messages.find(m => m.id === id)
-    if (!message) return
-    
-    setMessages(prev => {
-      const index = prev.findIndex(m => m.id === id)
-      if (index === -1) return prev
-      
-      const updated = [...prev.slice(0, index + 1)]
-      updated[index] = { ...updated[index], content: newContent }
-      console.log("Messages after handleResendMessage (setMessages):", updated);
-      return updated
-    })
-    sendMessage(newContent, selectedModel)
+    if (!selectedModel) return
+    editAndResendMessage(id, newContent, selectedModel)
   }
-  
-  const handleEditAIMessage = (id: string, newContent: string) => {
-    console.log("handleEditAIMessage called", { id, newContent });
-    setMessages(prev => {
-      const index = prev.findIndex(m => m.id === id)
-      if (index === -1) return prev
 
-      const updated = [...prev]
-      updated[index] = { ...updated[index], content: newContent }
-      console.log("Messages after handleEditAIMessage:", updated);
-      return updated
-    })
-  }
-  
+  // Optional: editing AI text locally is not persisted to chat history; omit for now
+  const handleEditAIMessage = (_id: string, _newContent: string) => {}
+
   useEffect(() => {
     const checkOllama = async () => {
       setOllamaStatus('checking')
@@ -98,54 +71,103 @@ export default function LLMInterface() {
       setOllamaStatus(isRunning ? 'connected' : 'disconnected')
       setShowOllamaSetup(!isRunning)
     }
-    
+
     checkOllama()
-    
     const interval = setInterval(checkOllama, 30000)
     return () => clearInterval(interval)
   }, [])
 
+  // Enhance prompt functionality
+  // This function is called to improve the user's prompt before sending it
+  /**
+   * 
+   * @returns void
+   */
   const enhancePrompt = async () => {
-    if (!prompt.trim() || !selectedModel) return;
-    const originalPrompt = prompt;
-    setPrompt("Improving your prompt...");
+    if (!prompt.trim() || !selectedModel) return
+    const originalPrompt = prompt
+    setPrompt("Improving your prompt...")
 
     try {
       const enhancementResponse = await ollamaService.generate({
         model: selectedModel,
-        prompt: `Please improve this prompt... Original prompt: """${originalPrompt}"""`
-      });
-      
+        prompt: `Please improve this prompt... Original prompt: """${orisginalPrompt}"""
+        Just return the improved prompt without any additional text like correct the grammar or spelling.
+        Make it more concise and clear but do not make additional comments and responds in the language of the original prompt.`,
+      })
+
       if (enhancementResponse.success && enhancementResponse.data) {
-        setPrompt(enhancementResponse.data.trim());
+        setPrompt(enhancementResponse.data.trim())
       } else {
-        setPrompt(originalPrompt);
+        setPrompt(originalPrompt)
       }
     } catch (error) {
-      setPrompt(originalPrompt);
+      setPrompt(originalPrompt)
+    }
+  }
+
+  // Handle sending messages
+  // This function is called when the user clicks the send button
+  /** * 
+   * @returns void
+   */
+  const handleSendMessage = async () => {
+    if (!prompt.trim() || !selectedModel || isGenerating) return;
+
+    if (chats.length === 0 || !activeChat) {
+      const newChat = createNewChat({ model: selectedModel });
+      setActiveChat(newChat.id);
+    }
+
+    setPrompt(""); // Clear the input prompt immediately
+    
+    // Store current files before clearing them and convert to proper format
+    const currentFiles = uploadedFiles.map(file => ({
+      id: file.id,
+      name: file.name,
+      type: file.type,
+      size: file.size ? `${(file.size / 1024).toFixed(1)} KB` : undefined
+    }));
+    clearFiles(); // Clear files from input bar immediately after sending
+    
+    try {
+      if (selectedTool === "web-search") {
+        setIsSearching(true); // Start search-specific indicator
+        console.log(isSearching);
+        
+        // Enable web search mode
+        enhancedChatService.setWebSearchEnabled(true);
+        const response = await enhancedChatService.streamMessage(
+          prompt,
+          activeChat ?? 'default',
+          selectedModel
+        );
+        await sendMessage(prompt, selectedModel, response, currentFiles);
+        // Disable web search after use
+        enhancedChatService.setWebSearchEnabled(false);
+      } else {
+        // Ensure web search is disabled
+        enhancedChatService.setWebSearchEnabled(false);
+        await sendMessage(prompt, selectedModel, undefined, currentFiles);
+      }
+    } catch (error) {
+      console.error("Error sending message:", error);
+      // Optionally, add error handling UI here (e.g., display an error message)
+    } finally {
+      // Ensure indicators are turned off regardless of success or failure
+      setIsSearching(false); // Stop search-specific indicator
     }
   };
 
-  const handleSendMessage = async () => {
-    if (!prompt.trim() || !selectedModel || isGenerating) return
-    
-    if (chats.length === 0 || !activeChat) {
-      const newChat = createNewChat({ model: selectedModel })
-      setActiveChat(newChat.id)
-    }
-    setPrompt("")
-    await sendMessage(prompt, selectedModel)
-  }
-
-  const currentChat = chats.find((chat) => chat.id === activeChat)
-
+  const currentChat = chats.find(chat => chat.id === activeChat)
   const { toggleSidebar } = useSidebar()
   const [isSidebarHidden, setIsSidebarHidden] = useState(false)
 
   return (
     <TooltipProvider>
+      <PreferencesProvider>
       <div className="flex h-screen bg-background overflow-hidden">
-        {/* Alerte Ollama */}
+        {/* Ollama Alert */}
         {showOllamaSetup && ollamaStatus === 'disconnected' && (
           <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-full max-w-md p-4">
             <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">
@@ -181,7 +203,7 @@ export default function LLMInterface() {
           />
         </Sidebar>
 
-        {/* Zone décalée : TopBar + MainChatArea */}
+        {/* Main Area */}
         <SidebarInset>
           <div className="flex flex-col h-full">
             <TopBar
@@ -212,16 +234,19 @@ export default function LLMInterface() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 isGenerating={isGenerating}
+                isSearching={isSearching}
                 onStopGeneration={stopGeneration}
                 selectedModel={selectedModel}
                 ollamaStatus={ollamaStatus}
+                selectedTool={selectedTool}
+                onSelectTool={setSelectedTool}
               />
+              
             </div>
           </div>
         </SidebarInset>
 
-
-        {/* Fichier upload */}
+        {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
@@ -231,6 +256,7 @@ export default function LLMInterface() {
           accept="image/*,.pdf,.doc,.docx,.txt"
         />
       </div>
+      </PreferencesProvider>
     </TooltipProvider>
   )
 }
