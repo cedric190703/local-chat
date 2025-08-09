@@ -2,14 +2,12 @@
 
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react"
 
-export type CodeTheme = "dracula" | "github" | "vscode"
 export type MarkdownFont = "sans" | "serif" | "mono"
 export type MarkdownSize = "sm" | "md" | "lg"
 export type MarkdownTheme = "light" | "dark" | "auto"
 export type MarkdownStyle = "default" | "compact" | "spacious"
 
 export interface PreferencesState {
-  codeTheme: CodeTheme
   markdownFont: MarkdownFont
   markdownSize: MarkdownSize
   markdownTheme: MarkdownTheme
@@ -17,7 +15,6 @@ export interface PreferencesState {
 }
 
 const defaultPreferences: PreferencesState = {
-  codeTheme: "dracula",
   markdownFont: "sans",
   markdownSize: "md",
   markdownTheme: "auto",
@@ -25,7 +22,6 @@ const defaultPreferences: PreferencesState = {
 }
 
 interface PreferencesContextValue extends PreferencesState {
-  setCodeTheme: (theme: CodeTheme) => void
   setMarkdownFont: (font: MarkdownFont) => void
   setMarkdownSize: (size: MarkdownSize) => void
   setMarkdownTheme: (theme: MarkdownTheme) => void
@@ -59,7 +55,6 @@ export function PreferencesProvider({ children }: { children: React.ReactNode })
 
   const value = useMemo(() => ({
     ...state,
-    setCodeTheme: (codeTheme: CodeTheme) => setState(prev => ({ ...prev, codeTheme })),
     setMarkdownFont: (markdownFont: MarkdownFont) => setState(prev => ({ ...prev, markdownFont })),
     setMarkdownSize: (markdownSize: MarkdownSize) => setState(prev => ({ ...prev, markdownSize })),
     setMarkdownTheme: (markdownTheme: MarkdownTheme) => setState(prev => ({ ...prev, markdownTheme })),
