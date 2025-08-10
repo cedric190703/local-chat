@@ -66,158 +66,6 @@ const codeThemes = {
   }
 }
 
-// Function to extract file indicators from message content
-function getFileIndicators(content: string): FileIndicator[] {
-  const indicators: FileIndicator[] = [];
-  
-  // Check for common file patterns in the content
-  const filePatterns = [
-    /IMAGE_FILE:\s*([^\n]+)/g,
-    /DOCUMENT_FILE:\s*([^\n]+)/g,
-    /BINARY_FILE:\s*([^\n]+)/g,
-  ];
-  
-  for (const pattern of filePatterns) {
-    let match;
-    while ((match = pattern.exec(content)) !== null) {
-      const fileName = match[1].trim();
-      const extension = fileName.split('.').pop()?.toLowerCase() || 'file';
-      const icon = getFileIcon(extension);
-      
-      // Extract size if available
-      const sizeMatch = content.match(new RegExp(`Size:\\s*([\\d.]+\\s*[KMGT]?B)`, 'i'));
-      const size = sizeMatch ? sizeMatch[1] : undefined;
-      
-      indicators.push({
-        name: fileName,
-        type: extension,
-        icon: icon,
-        size: size,
-      });
-    }
-  }
-  
-  // Remove duplicates
-  const uniqueIndicators = indicators.filter((indicator, index, self) => 
-    index === self.findIndex(i => i.name === indicator.name)
-  );
-  
-  return uniqueIndicators;
-}
-
-// Function to get appropriate icon for file type
-function getFileIcon(extension: string): string {
-  const iconMap: Record<string, string> = {
-    // Images
-    'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️', 'bmp': '🖼️', 'svg': '🖼️', 'webp': '🖼️',
-    // Documents
-    'pdf': '📄', 'doc': '📄', 'docx': '📄', 'txt': '📄', 'md': '📝', 'readme': '📖',
-    // Code files
-    'js': '⚡', 'jsx': '⚡', 'ts': '⚡', 'tsx': '⚡',
-    'py': '🐍', 'python': '🐍',
-    'html': '🌐', 'htm': '🌐',
-    'css': '🎨', 'scss': '🎨', 'sass': '🎨',
-    'json': '📋', 'xml': '📋', 'yaml': '📋', 'yml': '📋',
-    // Data files
-    'csv': '📊', 'xlsx': '📊', 'xls': '📊',
-    'sql': '🗄️', 'db': '🗄️', 'sqlite': '🗄️',
-    // Config files
-    'env': '⚙️', 'config': '⚙️', 'conf': '⚙️',
-    'dockerfile': '🐳', 'docker': '🐳',
-    'gitignore': '📂', 'git': '📂',
-    // Scripts
-    'sh': '📜', 'bash': '📜', 'zsh': '📜',
-    'bat': '📜', 'cmd': '📜', 'ps1': '📜',
-    // Logs
-    'log': '📋', 'logs': '📋',
-    // Archives
-    'zip': '📦', 'rar': '📦', 'tar': '📦', 'gz': '📦',
-    // Audio/Video
-    'mp3': '🎵', 'wav': '🎵', 'mp4': '🎬', 'avi': '🎬',
-    // Default
-    'file': '📎',
-  };
-  
-  return iconMap[extension] || iconMap['file'];
-}
-
-// Enhanced syntax highlighting function
-const keywords = {
-  javascript: ['const', 'let', 'var', 'function', 'return', 'if', 'else', 'for', 'while', 'class', 'import', 'export', 'default', 'async', 'await', 'try', 'catch', 'throw', 'new', 'this', 'super', 'extends', 'static'],
-  python: ['def', 'class', 'return', 'if', 'elif', 'else', 'for', 'while', 'try', 'except', 'import', 'from', 'as', 'with', 'lambda', 'and', 'or', 'not', 'in', 'is', 'None', 'True', 'False', 'self', 'pass', 'break', 'continue'],
-  typescript: ['interface', 'type', 'enum', 'implements', 'extends', 'namespace', 'declare', 'public', 'private', 'protected', 'readonly', 'abstract'],
-  html: ['<!DOCTYPE', 'html', 'head', 'body', 'div', 'span', 'p', 'a', 'img', 'script', 'style', 'link', 'meta'],
-  css: ['@media', '@keyframes', '@import', '@font-face', 'margin', 'padding', 'color', 'background', 'font-size', 'display', 'position', 'width', 'height', 'border', 'flex', 'grid'],
-  cpp: [
-    'int', 'float', 'double', 'char', 'void', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'default', 'struct', 'class', 'public', 'private', 'protected', 'include', 'define', 'typedef', 'namespace', 'using', 'std', 'const', 'static', 'sizeof', 'malloc', 'free', 'printf', 'scanf', 'main'
-  ],
-  c: [
-    'int', 'float', 'double', 'char', 'void', 'return', 'if', 'else', 'for', 'while', 'do', 'switch', 'case', 'break', 'continue', 'default', 'struct', 'include', 'define', 'typedef', 'sizeof', 'malloc', 'free', 'printf', 'scanf', 'main'
-  ]
-}
-
-const highlightSyntax = (code: string, language: string, codeTheme: keyof typeof codeThemes = 'dracula') => {
-  if (!language || language === 'text') return code
-  
-  const colors = codeThemes[codeTheme]
-
-  // Check if code is already HTML formatted (contains span tags with style attributes)
-  if (code.includes('<span style="color:')) {
-    // Code is already formatted, return as is
-    return code
-  }
-
-  // Normalize C/C++ language names
-  const normalizedLanguage = (language === 'c' || language === 'cpp' || language === 'c++') ? 'cpp' : language
-  const langKeywords = keywords[normalizedLanguage as keyof typeof keywords] || []
-
-  return code.split('\n').map((line, lineIndex) => {
-    let highlightedLine = line
-
-    // C/C++: highlight keywords and strings only, skip numbers/operators
-    if (normalizedLanguage === 'cpp') {
-      // Highlight keywords
-      langKeywords.forEach(keyword => {
-        const regex = new RegExp(`\\b${keyword}\\b(?![^<]*>)`, 'g')
-        highlightedLine = highlightedLine.replace(regex, `<span style="color: ${colors.pink}; font-weight: 500;">${keyword}</span>`)
-      })
-      // Highlight strings
-      highlightedLine = highlightedLine.replace(/(["'])(?:(?=(\\?))\2.)*?\1/g, `<span style="color: ${colors.green};">$&</span>`)
-      // Highlight comments
-      highlightedLine = highlightedLine.replace(/(\/\/.*$|\/\*[\s\S]*?\*\/)/g, `<span style="color: ${colors.comment}; font-style: italic;">$1</span>`)
-      return highlightedLine
-    }
-
-    // Highlight keywords (avoid re-highlighting already highlighted text)
-    langKeywords.forEach(keyword => {
-      const regex = new RegExp(`\\b${keyword}\\b(?![^<]*>)`, 'g')
-      highlightedLine = highlightedLine.replace(regex, `<span style="color: ${colors.pink}; font-weight: 500;">${keyword}</span>`)
-    })
-    
-    // Highlight strings (improved pattern to handle nested quotes better)
-    highlightedLine = highlightedLine.replace(/(?<!<[^>]*)(["'])((?:\\.|(?!\1)[^\\])*)\1/g, 
-      `<span style="color: ${colors.green};">$1$2$1</span>`)
-    
-    // Highlight numbers (integers and floats)
-    highlightedLine = highlightedLine.replace(/\b(\d+\.?\d*)\b(?![^<]*>)/g, 
-      `<span style="color: ${colors.purple}; font-weight: 500;">$1</span>`)
-    
-    // Highlight operators
-    highlightedLine = highlightedLine.replace(/([+\-*/%=<>!&|^~])/g, 
-      `<span style="color: ${colors.pink};">$1</span>`)
-    
-    // Language-specific comment highlighting
-    if (language === 'javascript' || language === 'typescript' || language === 'css') {
-      highlightedLine = highlightedLine.replace(/(\/\/.*$|\/\*[\s\S]*?\*\/)/g, 
-        `<span style="color: ${colors.comment}; font-style: italic;">$1</span>`)
-    }
-    
-    return highlightedLine
-  }).join('\n')
-}
-
-
-
 interface MarkdownRendererProps {
   content: string
   font?: 'sans' | 'serif' | 'mono'
@@ -235,7 +83,6 @@ function MarkdownRenderer({
 }: MarkdownRendererProps) {
   const [copiedCode, setCopiedCode] = React.useState<string | null>(null)
   const [showInsights, setShowInsights] = React.useState(false)
-  const { codeTheme: selectedCodeTheme } = usePreferences()
 
   const copyCode = async (code: string, id: string) => {
     await navigator.clipboard.writeText(code)
@@ -272,20 +119,44 @@ function MarkdownRenderer({
   const parts = content.split(/(```[\s\S]*?```|`[^`]+`|!\[.*?\]\(.*?\)|\[.*?\]\(.*\)|\*\*.*?\*\*|_.*?_|\n- .*?(?=\n)|^\* .*$(?:\n^\* .*$)*|^#{1,6} .+$)/gm)
   
   // Dynamic styling based on props
-  const fontClass = font === 'serif' ? 'font-serif' : font === 'mono' ? 'font-mono' : 'font-sans'
-  const sizeClass = size === 'sm' ? 'text-sm' : size === 'lg' ? 'text-lg' : 'text-base'
-  const spacingClass = style === 'compact' ? 'space-y-1' : style === 'spacious' ? 'space-y-6' : 'space-y-3'
+  const getFontClass = () => {
+    switch (font) {
+      case 'serif': return 'font-serif'
+      case 'mono': return 'font-mono'
+      default: return 'font-sans'
+    }
+  }
+  
+  const getTextSize = () => {
+    switch (size) {
+      case 'sm': return 'text-sm'
+      case 'lg': return 'text-lg'
+      default: return 'text-base'
+    }
+  }
+  
+  const getSpacingClass = () => {
+    switch (style) {
+      case 'compact': return 'space-y-1'
+      case 'spacious': return 'space-y-6'
+      default: return 'space-y-3'
+    }
+  }
+  
+  const fontClass = getFontClass()
+  const sizeClass = getTextSize()
+  const spacingClass = getSpacingClass()
   const themeClass = theme === 'dark' ? 'dark' : theme === 'light' ? 'light' : ''
   
   return (
     <div className={`${spacingClass} ${fontClass} ${sizeClass} ${themeClass}`}>
       {/* Content Insights Panel */}
       {showInsights && (
-        <div className={`mb-4 p-4 rounded-lg border shadow-sm ${theme === 'dark' ? 'bg-gray-800 border-gray-600' : theme === 'light' ? 'bg-gray-50 border-gray-200' : 'bg-muted border-border'}`}>
+        <div className={`mb-4 p-4 rounded-lg border shadow-sm bg-blue-200 border-gray-200`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-base">📊</span>
-              <h4 className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : theme === 'light' ? 'text-gray-800' : 'text-foreground'}`}>
+              <h4 className='text-sm font-semibold text-black'>
                 Content Insights
               </h4>
             </div>
@@ -293,49 +164,49 @@ function MarkdownRenderer({
               size="sm"
               variant="ghost"
               onClick={() => setShowInsights(false)}
-              className={`h-7 w-7 p-0 rounded-full hover:bg-opacity-20 ${theme === 'dark' ? 'hover:bg-gray-600' : theme === 'light' ? 'hover:bg-gray-200' : 'hover:bg-muted'}`}
+              className="h-6 w-6 rounded-full flex items-center justify-center bg-gray-200 border border-gray-300 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               title="Close insights"
             >
-              <X className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`} />
+              <X className="h-4 w-4" />
             </Button>
           </div>
           <div className={`grid grid-cols-2 gap-3 ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'}`}>
-            <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+            <div className={`flex items-center gap-1 text-black`}>
               <span className="text-sm">📝</span>
               <span className="font-medium">Words:</span> 
-              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : theme === 'light' ? 'text-gray-900' : 'text-foreground'}`}>{insights.wordCount}</span>
+              <span className={`font-semibold text-black`}>{insights.wordCount}</span>
             </div>
-            <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+            <div className='flex items-center gap-1 text-black'>
               <span className="text-sm">⏱️</span>
               <span className="font-medium">Reading:</span> 
-              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : theme === 'light' ? 'text-gray-900' : 'text-foreground'}`}>{insights.readingTime}min</span>
+              <span className='font-semibold text-black'>{insights.readingTime}min</span>
             </div>
             {insights.codeBlocks > 0 && (
-              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <div className='flex items-center gap-1 text-black'>
                 <span className="text-sm">💻</span>
                 <span className="font-medium">Code blocks:</span> 
-                <span className={`font-semibold ${theme === 'dark' ? 'text-blue-400' : theme === 'light' ? 'text-blue-600' : 'text-primary'}`}>{insights.codeBlocks}</span>
+                <span className='font-semibold text-black'>{insights.codeBlocks}</span>
               </div>
             )}
             {insights.inlineCode > 0 && (
-              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <div className='flex items-center gap-1 text-black'>
                 <span className="text-sm">⌨️</span>
                 <span className="font-medium">Inline code:</span> 
-                <span className={`font-semibold ${theme === 'dark' ? 'text-purple-400' : theme === 'light' ? 'text-purple-600' : 'text-primary'}`}>{insights.inlineCode}</span>
+                <span className='font-semibold text-black'>{insights.inlineCode}</span>
               </div>
             )}
             {insights.links > 0 && (
-              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <div className='flex items-center gap-1 text-gray-300'>
                 <span className="text-sm">🔗</span>
                 <span className="font-medium">Links:</span> 
-                <span className={`font-semibold ${theme === 'dark' ? 'text-green-400' : theme === 'light' ? 'text-green-600' : 'text-primary'}`}>{insights.links}</span>
+                <span className='font-semibold text-black'>{insights.links}</span>
               </div>
             )}
             {insights.images > 0 && (
-              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <div className='flex items-center gap-1 text-black'>
                 <span className="text-sm">🖼️</span>
                 <span className="font-medium">Images:</span> 
-                <span className={`font-semibold ${theme === 'dark' ? 'text-yellow-400' : theme === 'light' ? 'text-yellow-600' : 'text-primary'}`}>{insights.images}</span>
+                <span className='font-semibold text-black'>{insights.images}</span>
               </div>
             )}
           </div>
@@ -349,11 +220,7 @@ function MarkdownRenderer({
             size="sm"
             variant="outline"
             onClick={() => setShowInsights(true)}
-            className={`${size === 'sm' ? 'h-6 text-xs px-2' : size === 'lg' ? 'h-8 text-sm px-4' : 'h-7 text-xs px-3'} transition-all duration-200 ${
-              theme === 'dark' ? 'border-gray-600 hover:bg-gray-700 text-gray-300' : 
-              theme === 'light' ? 'border-gray-300 hover:bg-gray-100 text-gray-700' : 
-              'border-border hover:bg-muted'
-            }`}
+            className={`${size === 'sm' ? 'h-6 text-xs px-2' : size === 'lg' ? 'h-8 text-sm px-4' : 'h-7 text-xs px-3'} transition-all duration-200 border-gray-300 hover:bg-blue-300 text-blue-700' `}
             title="View content statistics and analysis"
           >
             <span className="mr-1">📊</span>
@@ -370,46 +237,28 @@ function MarkdownRenderer({
           const language = lines[0].trim() || 'text'
           const code = lines.slice(1).join('\n').trim()
           const codeId = `code-${index}`
-          const highlightedCode = highlightSyntax(code, language, selectedCodeTheme)
+          // Simplified code rendering - no HTML markup
+          const getPlainCode = (code: string) => {
+            return code
+          }
+          const plainCode = getPlainCode(code)
           
           // Dynamic styling based on theme and size
           const codeBlockPadding = style === 'compact' ? 'p-2' : style === 'spacious' ? 'p-6' : 'p-4'
           const headerPadding = style === 'compact' ? 'px-3 py-1.5' : style === 'spacious' ? 'px-5 py-3' : 'px-4 py-2'
-          const codeTextSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm'
           const languageLabelSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'
           
           // Theme-based colors
           const getCodeBlockTheme = () => {
-            if (theme === 'dark') {
-              return {
-                background: '#1a1a1a',
-                border: '#374151',
-                headerBg: '#111827',
-                headerBorder: '#374151',
-                languageColor: '#60a5fa',
-                textColor: '#e5e7eb'
-              }
-            } else if (theme === 'light') {
-              return {
-                background: '#f8fafc',
-                border: '#e2e8f0',
-                headerBg: '#f1f5f9',
-                headerBorder: '#e2e8f0',
-                languageColor: '#3b82f6',
-                textColor: '#1f2937'
-              }
-            } else {
-              const draculaTheme = codeThemes.dracula
-              return {
-                background: draculaTheme.background,
-                border: draculaTheme.comment,
-                headerBg: draculaTheme.currentLine,
-                headerBorder: draculaTheme.comment,
-                languageColor: draculaTheme.cyan,
-                textColor: draculaTheme.foreground
-              }
-            }
-          }
+            return {
+              background: '#dbeafe', // Equivalent to bg-blue-100 (softer) or bg-blue-200 (stronger)
+              border: '#bfdbfe',     // Equivalent to border-blue-200
+              headerBg: '#bfdbfe',  // Slightly darker blue for header
+              headerBorder: '#93c5fd', // Border color for header
+              languageColor: '#1444c7ff', // Darker blue for language label
+              textColor: '#1e3a8a'     // Dark blue for text (readable on light bg)
+            };
+          };
           
           const codeTheme = getCodeBlockTheme()
 
@@ -454,38 +303,23 @@ function MarkdownRenderer({
                   </Button>
                 </div>
                 <pre 
-                  className={`${codeBlockPadding} overflow-x-auto ${codeTextSize} leading-relaxed font-mono`}
-                  style={{ 
-                    backgroundColor: codeTheme.background,
-                    color: codeTheme.textColor
-                  }}
-                  dangerouslySetInnerHTML={{ __html: highlightedCode }}
-                />
+                  className={`${codeBlockPadding} rounded-lg border overflow-x-auto font-mono ${getFontClass()} ${getTextSize()} bg-gray-800 text-gray-200`}
+                >
+                  {plainCode}
+                </pre>
               </div>
             </div>
           )
         }
 
-
         // Inline code
         if (part.startsWith('`') && part.endsWith('`')) {
           const inlineCode = part.slice(1, -1)
-          const codePadding = style === 'compact' ? 'px-2 py-0.5' : style === 'spacious' ? 'px-4 py-1' : 'px-3 py-0.5'
-          const codeSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm'
-          
-          // Use selected code theme for inline code
-          const selectedTheme = codeThemes[selectedCodeTheme]
-          const inlineCodeStyle = {
-            backgroundColor: selectedTheme.currentLine,
-            color: selectedTheme.purple,
-            borderColor: selectedTheme.comment
-          }
           
           return (
-            <code
-              key={index}
-              className={`${codePadding} rounded-md ${codeSize} font-mono border`}
-              style={inlineCodeStyle}
+            <code 
+              key={index} 
+              className={`px-1.5 py-0.5 rounded font-mono border bg-gray-700 text-purple-300 ${getTextSize()}`}
             >
               {inlineCode}
             </code>
@@ -509,8 +343,8 @@ function MarkdownRenderer({
                   (e.target as HTMLImageElement).style.display = 'none'
                 }}
               />
-              {altText && (
-                <div className={`text-xs text-center p-2 ${theme === 'dark' ? 'text-gray-400 bg-gray-800' : theme === 'light' ? 'text-gray-600 bg-gray-100' : 'text-muted-foreground bg-muted'}`}>
+              {showInsights && (
+                <div className={'mb-4 p-4 rounded-lg border shadow-sm bg-gray-800 border-gray-600'}>
                   {altText}
                 </div>
               )}
@@ -522,14 +356,14 @@ function MarkdownRenderer({
         if (part.startsWith('[') && part.includes('](')) {
           const text = part.match(/\[(.*?)\]/)?.[1] || ''
           const url = part.match(/\((.*?)\)/)?.[1] || ''
-          const linkColor = theme === 'dark' ? 'text-blue-400 hover:text-blue-300' : theme === 'light' ? 'text-blue-600 hover:text-blue-500' : 'text-primary hover:text-primary/80'
+          const linkColor = 'text-blue-400 hover:text-blue-300'
           return (
             <a 
               key={index} 
               href={url} 
               target="_blank" 
               rel="noopener noreferrer"
-              className={`${linkColor} underline transition-colors duration-200`}
+              className={`${linkColor} ${getFontClass()} ${getTextSize()} underline transition-colors duration-200`}
               title={url}
             >
               {text || url}
@@ -542,7 +376,7 @@ function MarkdownRenderer({
           const text = part.slice(2, -2)
           const boldWeight = style === 'compact' ? 'font-medium' : 'font-semibold'
           return (
-            <strong key={index} className={`${boldWeight} ${theme === 'dark' ? 'text-gray-100' : theme === 'light' ? 'text-gray-900' : ''}`}>
+            <strong key={index} className={`${boldWeight} ${getFontClass()} ${getTextSize()} text-gray-100`}>
               {text}
             </strong>
           )
@@ -552,7 +386,7 @@ function MarkdownRenderer({
         if (part.startsWith('_') && part.endsWith('_')) {
           const text = part.slice(1, -1)
           return (
-            <em key={index} className={`italic ${theme === 'dark' ? 'text-gray-200' : theme === 'light' ? 'text-gray-800' : ''}`}>
+            <em key={index} className={`italic ${getFontClass()} ${getTextSize()} text-gray-200`}>
               {text}
             </em>
           )
@@ -564,16 +398,18 @@ function MarkdownRenderer({
           const text = part.replace(/^#{1,6} /, '')
           
           const getTitleStyles = (level: number) => {
-            const baseStyles = 'font-bold leading-tight'
+            const baseStyles = `font-bold leading-tight ${getFontClass()}`
+            const themeClass = 'text-gray-100'
+            const sizeClass = getTextSize()
             
             switch (level) {
-              case 1: return `text-2xl ${baseStyles} mb-4 mt-6 border-b border-border pb-2`
-              case 2: return `text-xl ${baseStyles} mb-3 mt-5`
-              case 3: return `text-lg ${baseStyles} mb-2 mt-4`
-              case 4: return `text-base ${baseStyles} mb-2 mt-3`
-              case 5: return `text-sm ${baseStyles} mb-1 mt-2`
-              case 6: return `text-xs ${baseStyles} mb-1 mt-2`
-              default: return `text-base ${baseStyles} mb-2 mt-3`
+              case 1: return `${sizeClass} ${baseStyles} ${themeClass} mb-4 mt-6 border-b border-border pb-2`
+              case 2: return `${sizeClass} ${baseStyles} ${themeClass} mb-3 mt-5`
+              case 3: return `${sizeClass} ${baseStyles} ${themeClass} mb-2 mt-4`
+              case 4: return `${sizeClass} ${baseStyles} ${themeClass} mb-2 mt-3`
+              case 5: return `${sizeClass} ${baseStyles} ${themeClass} mb-1 mt-2`
+              case 6: return `${sizeClass} ${baseStyles} ${themeClass} mb-1 mt-2`
+              default: return `${sizeClass} ${baseStyles} ${themeClass} mb-2 mt-3`
             }
           }
           
@@ -598,11 +434,11 @@ function MarkdownRenderer({
 
         // Lists
         if (part.startsWith('\n- ') || part.startsWith('* ')) {
-          const items = part.split('\n').filter(item => item.trim())
+          const items = part.split('\n').filter((item: string) => item.trim())
           return (
-            <ul key={index} className="list-disc pl-5 space-y-1">
-              {items.map((item, i) => (
-                <li key={i} className="text-sm">
+            <ul key={index} className={`list-disc pl-5 ${getSpacingClass()} ${getFontClass()}`}>
+              {items.map((item: string, i: number) => (
+                <li key={i} className={`${getTextSize()} text-gray-200`}>
                   {item.replace(/^[-*] /, '')}
                 </li>
               ))}
@@ -656,47 +492,14 @@ export function ChatMessages({
   onResendMessage,
   onEditAIMessage
 }: ChatMessagesProps) {
-  const { codeTheme, markdownFont, markdownSize, markdownTheme, markdownStyle } = usePreferences()
+  const { markdownFont, markdownSize, markdownTheme, markdownStyle } = usePreferences()
   const { theme: appTheme } = useTheme()
   const [editingId, setEditingId] = React.useState<string | null>(null)
   const [editContent, setEditContent] = React.useState('')
   const [copiedMessageId, setCopiedMessageId] = React.useState<string | null>(null)
 
-  // Resolve the effective theme for markdown rendering
-  const [effectiveTheme, setEffectiveTheme] = React.useState<'light' | 'dark' | 'auto'>(() => {
-    if (markdownTheme === 'auto') {
-      if (appTheme === 'system') {
-        return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      }
-      return appTheme === 'dark' ? 'dark' : 'light'
-    }
-    return markdownTheme
-  })
-
-  React.useEffect(() => {
-    const updateEffectiveTheme = () => {
-      if (markdownTheme === 'auto') {
-        if (appTheme === 'system') {
-          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-          setEffectiveTheme(isDark ? 'dark' : 'light')
-        } else {
-          setEffectiveTheme(appTheme === 'dark' ? 'dark' : 'light')
-        }
-      } else {
-        setEffectiveTheme(markdownTheme)
-      }
-    }
-
-    updateEffectiveTheme()
-
-    // Listen for system theme changes when using auto theme
-    if (markdownTheme === 'auto' && appTheme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      const handleChange = () => updateEffectiveTheme()
-      mediaQuery.addEventListener('change', handleChange)
-      return () => mediaQuery.removeEventListener('change', handleChange)
-    }
-  }, [markdownTheme, appTheme])
+  // Simplified theme resolution using Next.js useTheme hook
+  const effectiveTheme = markdownTheme === 'auto' ? appTheme : markdownTheme
 
   const handleStartEdit = (message: Message) => {
     setEditingId(message.id)
@@ -994,7 +797,6 @@ export function ChatMessages({
                         })()}
                         font={markdownFont}
                         size={markdownSize}
-                        theme={effectiveTheme}
                         style={markdownStyle}
                       />
                     </div>
@@ -1007,7 +809,6 @@ export function ChatMessages({
                       content={message.content} 
                       font={markdownFont}
                       size={markdownSize}
-                      theme={effectiveTheme}
                       style={markdownStyle}
                     />
                     {message.isStreaming && (
