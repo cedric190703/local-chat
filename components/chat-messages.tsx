@@ -8,14 +8,6 @@ import { usePreferences } from '@/hooks/use-preferences'
 import { useTheme } from 'next-themes'
 import { Message } from '@/hooks/use-chat'
 
-// File indicator type
-interface FileIndicator {
-  name: string;
-  type: string;
-  icon: string;
-  size?: string;
-}
-
 interface ChatMessagesProps {
   messages: Message[]
   onEditMessage?: (id: string, newContent: string) => void
