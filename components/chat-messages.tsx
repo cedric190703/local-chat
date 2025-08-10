@@ -86,6 +86,8 @@ function MarkdownRenderer({
   const { theme: systemTheme } = useTheme()
   
   // Correct theme detection
+  console.log(systemTheme);
+  
   const actualTheme = theme === 'auto' ? systemTheme : theme
 
   const copyCode = async (code: string, id: string) => {
@@ -148,6 +150,7 @@ function MarkdownRenderer({
   }
   
   const isDarkTheme = actualTheme === 'dark'
+  
   const fontClass = getFontClass()
   const sizeClass = getTextSize()
   const spacingClass = getSpacingClass()
@@ -161,7 +164,7 @@ function MarkdownRenderer({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-base">📊</span>
-              <h4 className={`text-sm font-semibold ${isDarkTheme ? 'text-gray-100' : 'text-gray-800'}`}>
+              <h4 className='text-sm font-semibold text-black'>
                 Content Insights
               </h4>
             </div>
@@ -181,37 +184,37 @@ function MarkdownRenderer({
               <span className="font-medium">Words:</span> 
               <span className={`font-semibold text-black`}>{insights.wordCount}</span>
             </div>
-            <div className={`flex items-center gap-1 text-black`}>
+            <div className='flex items-center gap-1 text-black'>
               <span className="text-sm">⏱️</span>
               <span className="font-medium">Reading:</span> 
-              <span className={`font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{insights.readingTime}min</span>
+              <span className='font-semibold text-black'>{insights.readingTime}min</span>
             </div>
             {insights.codeBlocks > 0 && (
               <div className={`flex items-center gap-1 text-black`}>
                 <span className="text-sm">💻</span>
                 <span className="font-medium">Code blocks:</span> 
-                <span className={`font-semibold ${isDarkTheme ? 'text-blue-400' : 'text-blue-600'}`}>{insights.codeBlocks}</span>
+                <span className='font-semibold text-black'>{insights.codeBlocks}</span>
               </div>
             )}
             {insights.inlineCode > 0 && (
-              <div className={`flex items-center gap-1 text-black`}>
+              <div className='flex items-center gap-1 text-black'>
                 <span className="text-sm">⌨️</span>
                 <span className="font-medium">Inline code:</span> 
-                <span className={`font-semibold ${isDarkTheme ? 'text-purple-400' : 'text-purple-600'}`}>{insights.inlineCode}</span>
+                <span className='font-semibold text-black'>{insights.inlineCode}</span>
               </div>
             )}
             {insights.links > 0 && (
               <div className={`flex items-center gap-1 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
                 <span className="text-sm">🔗</span>
                 <span className="font-medium">Links:</span> 
-                <span className={`font-semibold ${isDarkTheme ? 'text-green-400' : 'text-green-600'}`}>{insights.links}</span>
+                <span className='font-semibold text-black'>{insights.links}</span>
               </div>
             )}
             {insights.images > 0 && (
-              <div className={`flex items-center gap-1 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+              <div className='flex items-center gap-1 text-black'>
                 <span className="text-sm">🖼️</span>
                 <span className="font-medium">Images:</span> 
-                <span className={`font-semibold ${isDarkTheme ? 'text-yellow-400' : 'text-yellow-600'}`}>{insights.images}</span>
+                <span className='font-semibold text-black'>{insights.images}</span>
               </div>
             )}
           </div>
@@ -251,7 +254,6 @@ function MarkdownRenderer({
           // Dynamic styling based on theme and size
           const codeBlockPadding = style === 'compact' ? 'p-2' : style === 'spacious' ? 'p-6' : 'p-4'
           const headerPadding = style === 'compact' ? 'px-3 py-1.5' : style === 'spacious' ? 'px-5 py-3' : 'px-4 py-2'
-          const codeTextSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm'
           const languageLabelSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'
           
           // Theme-based colors
@@ -261,7 +263,7 @@ function MarkdownRenderer({
               border: '#bfdbfe',     // Equivalent to border-blue-200
               headerBg: '#bfdbfe',  // Slightly darker blue for header
               headerBorder: '#93c5fd', // Border color for header
-              languageColor: '#1d4ed8', // Darker blue for language label
+              languageColor: '#1444c7ff', // Darker blue for language label
               textColor: '#1e3a8a'     // Dark blue for text (readable on light bg)
             };
           };
@@ -317,7 +319,6 @@ function MarkdownRenderer({
             </div>
           )
         }
-
 
         // Inline code
         if (part.startsWith('`') && part.endsWith('`')) {
