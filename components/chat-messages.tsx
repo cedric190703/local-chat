@@ -83,7 +83,10 @@ function MarkdownRenderer({
 }: MarkdownRendererProps) {
   const [copiedCode, setCopiedCode] = React.useState<string | null>(null)
   const [showInsights, setShowInsights] = React.useState(false)
-  // Code theme removed - using simplified rendering
+  const { theme: systemTheme } = useTheme()
+  
+  // Correct theme detection
+  const actualTheme = theme === 'auto' ? systemTheme : theme
 
   const copyCode = async (code: string, id: string) => {
     await navigator.clipboard.writeText(code)
@@ -144,7 +147,7 @@ function MarkdownRenderer({
     }
   }
   
-  const isDarkTheme = theme === 'dark'
+  const isDarkTheme = actualTheme === 'dark'
   const fontClass = getFontClass()
   const sizeClass = getTextSize()
   const spacingClass = getSpacingClass()
@@ -158,7 +161,7 @@ function MarkdownRenderer({
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <span className="text-base">📊</span>
-              <h4 className={`text-sm font-semibold ${theme === 'dark' ? 'text-gray-100' : theme === 'light' ? 'text-gray-800' : 'text-foreground'}`}>
+              <h4 className={`text-sm font-semibold ${isDarkTheme ? 'text-gray-100' : 'text-gray-800'}`}>
                 Content Insights
               </h4>
             </div>
@@ -166,49 +169,49 @@ function MarkdownRenderer({
               size="sm"
               variant="ghost"
               onClick={() => setShowInsights(false)}
-              className={`h-6 w-6 p-0 rounded-full hover:bg-opacity-20 ${theme === 'dark' ? 'hover:bg-gray-600' : theme === 'light' ? 'hover:bg-gray-200' : 'hover:bg-muted'}`}
+              className={`h-6 w-6 p-0 rounded-full hover:bg-opacity-20 ${isDarkTheme ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
               title="Close insights"
             >
-              <X className={`h-4 w-4 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`} />
+              <X className={`h-4 w-4 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`} />
             </Button>
           </div>
           <div className={`grid grid-cols-2 gap-3 ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'}`}>
-            <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+            <div className={`flex items-center gap-1 text-black`}>
               <span className="text-sm">📝</span>
               <span className="font-medium">Words:</span> 
-              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : theme === 'light' ? 'text-gray-900' : 'text-foreground'}`}>{insights.wordCount}</span>
+              <span className={`font-semibold text-black`}>{insights.wordCount}</span>
             </div>
-            <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+            <div className={`flex items-center gap-1 text-black`}>
               <span className="text-sm">⏱️</span>
               <span className="font-medium">Reading:</span> 
-              <span className={`font-semibold ${theme === 'dark' ? 'text-white' : theme === 'light' ? 'text-gray-900' : 'text-foreground'}`}>{insights.readingTime}min</span>
+              <span className={`font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>{insights.readingTime}min</span>
             </div>
             {insights.codeBlocks > 0 && (
-              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <div className={`flex items-center gap-1 text-black`}>
                 <span className="text-sm">💻</span>
                 <span className="font-medium">Code blocks:</span> 
-                <span className={`font-semibold ${theme === 'dark' ? 'text-blue-400' : theme === 'light' ? 'text-blue-600' : 'text-primary'}`}>{insights.codeBlocks}</span>
+                <span className={`font-semibold ${isDarkTheme ? 'text-blue-400' : 'text-blue-600'}`}>{insights.codeBlocks}</span>
               </div>
             )}
             {insights.inlineCode > 0 && (
-              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <div className={`flex items-center gap-1 text-black`}>
                 <span className="text-sm">⌨️</span>
                 <span className="font-medium">Inline code:</span> 
-                <span className={`font-semibold ${theme === 'dark' ? 'text-purple-400' : theme === 'light' ? 'text-purple-600' : 'text-primary'}`}>{insights.inlineCode}</span>
+                <span className={`font-semibold ${isDarkTheme ? 'text-purple-400' : 'text-purple-600'}`}>{insights.inlineCode}</span>
               </div>
             )}
             {insights.links > 0 && (
-              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <div className={`flex items-center gap-1 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
                 <span className="text-sm">🔗</span>
                 <span className="font-medium">Links:</span> 
-                <span className={`font-semibold ${theme === 'dark' ? 'text-green-400' : theme === 'light' ? 'text-green-600' : 'text-primary'}`}>{insights.links}</span>
+                <span className={`font-semibold ${isDarkTheme ? 'text-green-400' : 'text-green-600'}`}>{insights.links}</span>
               </div>
             )}
             {insights.images > 0 && (
-              <div className={`flex items-center gap-1 ${theme === 'dark' ? 'text-gray-300' : theme === 'light' ? 'text-gray-600' : 'text-muted-foreground'}`}>
+              <div className={`flex items-center gap-1 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
                 <span className="text-sm">🖼️</span>
                 <span className="font-medium">Images:</span> 
-                <span className={`font-semibold ${theme === 'dark' ? 'text-yellow-400' : theme === 'light' ? 'text-yellow-600' : 'text-primary'}`}>{insights.images}</span>
+                <span className={`font-semibold ${isDarkTheme ? 'text-yellow-400' : 'text-yellow-600'}`}>{insights.images}</span>
               </div>
             )}
           </div>
@@ -222,7 +225,7 @@ function MarkdownRenderer({
             size="sm"
             variant="outline"
             onClick={() => setShowInsights(true)}
-            className={`${size === 'sm' ? 'h-6 text-xs px-2' : size === 'lg' ? 'h-8 text-sm px-4' : 'h-7 text-xs px-3'} transition-all duration-200 border-gray-300 hover:bg-blue-500 text-blue-700' `}
+            className={`${size === 'sm' ? 'h-6 text-xs px-2' : size === 'lg' ? 'h-8 text-sm px-4' : 'h-7 text-xs px-3'} transition-all duration-200 border-gray-300 hover:bg-blue-300 text-blue-700' `}
             title="View content statistics and analysis"
           >
             <span className="mr-1">📊</span>
@@ -253,36 +256,15 @@ function MarkdownRenderer({
           
           // Theme-based colors
           const getCodeBlockTheme = () => {
-            if (theme === 'dark') {
-              return {
-                background: '#1a1a1a',
-                border: '#374151',
-                headerBg: '#111827',
-                headerBorder: '#374151',
-                languageColor: '#60a5fa',
-                textColor: '#e5e7eb'
-              }
-            } else if (theme === 'light') {
-              return {
-                background: '#f8fafc',
-                border: '#e2e8f0',
-                headerBg: '#f1f5f9',
-                headerBorder: '#e2e8f0',
-                languageColor: '#3b82f6',
-                textColor: '#1f2937'
-              }
-            } else {
-              const draculaTheme = codeThemes.dracula
-              return {
-                background: draculaTheme.background,
-                border: draculaTheme.comment,
-                headerBg: draculaTheme.currentLine,
-                headerBorder: draculaTheme.comment,
-                languageColor: draculaTheme.cyan,
-                textColor: draculaTheme.foreground
-              }
-            }
-          }
+            return {
+              background: '#dbeafe', // Equivalent to bg-blue-100 (softer) or bg-blue-200 (stronger)
+              border: '#bfdbfe',     // Equivalent to border-blue-200
+              headerBg: '#bfdbfe',  // Slightly darker blue for header
+              headerBorder: '#93c5fd', // Border color for header
+              languageColor: '#1d4ed8', // Darker blue for language label
+              textColor: '#1e3a8a'     // Dark blue for text (readable on light bg)
+            };
+          };
           
           const codeTheme = getCodeBlockTheme()
 
@@ -340,8 +322,6 @@ function MarkdownRenderer({
         // Inline code
         if (part.startsWith('`') && part.endsWith('`')) {
           const inlineCode = part.slice(1, -1)
-          const codePadding = style === 'compact' ? 'px-2 py-0.5' : style === 'spacious' ? 'px-4 py-1' : 'px-3 py-0.5'
-          const codeSize = size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-base' : 'text-sm'
           
           // Simplified inline code styling
           const inlineCodeBg = isDarkTheme ? 'bg-gray-700' : 'bg-gray-100'
@@ -374,8 +354,8 @@ function MarkdownRenderer({
                   (e.target as HTMLImageElement).style.display = 'none'
                 }}
               />
-              {altText && (
-                <div className={`text-xs text-center p-2 ${theme === 'dark' ? 'text-gray-400 bg-gray-800' : theme === 'light' ? 'text-gray-600 bg-gray-100' : 'text-muted-foreground bg-muted'}`}>
+              {showInsights && (
+                <div className={`mb-4 p-4 rounded-lg border shadow-sm ${isDarkTheme ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
                   {altText}
                 </div>
               )}
@@ -529,41 +509,8 @@ export function ChatMessages({
   const [editContent, setEditContent] = React.useState('')
   const [copiedMessageId, setCopiedMessageId] = React.useState<string | null>(null)
 
-  // Resolve the effective theme for markdown rendering
-  const [effectiveTheme, setEffectiveTheme] = React.useState<'light' | 'dark' | 'auto'>(() => {
-    if (markdownTheme === 'auto') {
-      if (appTheme === 'system') {
-        return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
-      }
-      return appTheme === 'dark' ? 'dark' : 'light'
-    }
-    return markdownTheme
-  })
-
-  React.useEffect(() => {
-    const updateEffectiveTheme = () => {
-      if (markdownTheme === 'auto') {
-        if (appTheme === 'system') {
-          const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-          setEffectiveTheme(isDark ? 'dark' : 'light')
-        } else {
-          setEffectiveTheme(appTheme === 'dark' ? 'dark' : 'light')
-        }
-      } else {
-        setEffectiveTheme(markdownTheme)
-      }
-    }
-
-    updateEffectiveTheme()
-
-    // Listen for system theme changes when using auto theme
-    if (markdownTheme === 'auto' && appTheme === 'system') {
-      const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-      const handleChange = () => updateEffectiveTheme()
-      mediaQuery.addEventListener('change', handleChange)
-      return () => mediaQuery.removeEventListener('change', handleChange)
-    }
-  }, [markdownTheme, appTheme])
+  // Simplified theme resolution using Next.js useTheme hook
+  const effectiveTheme = markdownTheme === 'auto' ? appTheme : markdownTheme
 
   const handleStartEdit = (message: Message) => {
     setEditingId(message.id)
