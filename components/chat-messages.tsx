@@ -83,12 +83,6 @@ function MarkdownRenderer({
 }: MarkdownRendererProps) {
   const [copiedCode, setCopiedCode] = React.useState<string | null>(null)
   const [showInsights, setShowInsights] = React.useState(false)
-  const { theme: systemTheme } = useTheme()
-  
-  // Correct theme detection
-  console.log(systemTheme);
-  
-  const actualTheme = theme === 'auto' ? systemTheme : theme
 
   const copyCode = async (code: string, id: string) => {
     await navigator.clipboard.writeText(code)
@@ -149,8 +143,6 @@ function MarkdownRenderer({
     }
   }
   
-  const isDarkTheme = actualTheme === 'dark'
-  
   const fontClass = getFontClass()
   const sizeClass = getTextSize()
   const spacingClass = getSpacingClass()
@@ -172,10 +164,10 @@ function MarkdownRenderer({
               size="sm"
               variant="ghost"
               onClick={() => setShowInsights(false)}
-              className={`h-6 w-6 p-0 rounded-full hover:bg-opacity-20 ${isDarkTheme ? 'hover:bg-gray-600' : 'hover:bg-gray-200'}`}
+              className="h-6 w-6 rounded-full flex items-center justify-center bg-gray-200 border border-gray-300 text-gray-700 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
               title="Close insights"
             >
-              <X className={`h-4 w-4 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`} />
+              <X className="h-4 w-4" />
             </Button>
           </div>
           <div className={`grid grid-cols-2 gap-3 ${size === 'sm' ? 'text-xs' : size === 'lg' ? 'text-sm' : 'text-xs'}`}>
@@ -190,7 +182,7 @@ function MarkdownRenderer({
               <span className='font-semibold text-black'>{insights.readingTime}min</span>
             </div>
             {insights.codeBlocks > 0 && (
-              <div className={`flex items-center gap-1 text-black`}>
+              <div className='flex items-center gap-1 text-black'>
                 <span className="text-sm">💻</span>
                 <span className="font-medium">Code blocks:</span> 
                 <span className='font-semibold text-black'>{insights.codeBlocks}</span>
@@ -204,7 +196,7 @@ function MarkdownRenderer({
               </div>
             )}
             {insights.links > 0 && (
-              <div className={`flex items-center gap-1 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+              <div className='flex items-center gap-1 text-gray-300'>
                 <span className="text-sm">🔗</span>
                 <span className="font-medium">Links:</span> 
                 <span className='font-semibold text-black'>{insights.links}</span>
@@ -311,7 +303,7 @@ function MarkdownRenderer({
                   </Button>
                 </div>
                 <pre 
-                  className={`${codeBlockPadding} rounded-lg border overflow-x-auto font-mono ${getFontClass()} ${getTextSize()} ${isDarkTheme ? 'bg-gray-800 text-gray-200' : 'bg-gray-100 text-gray-800'}`}
+                  className={`${codeBlockPadding} rounded-lg border overflow-x-auto font-mono ${getFontClass()} ${getTextSize()} bg-gray-800 text-gray-200`}
                 >
                   {plainCode}
                 </pre>
@@ -324,14 +316,10 @@ function MarkdownRenderer({
         if (part.startsWith('`') && part.endsWith('`')) {
           const inlineCode = part.slice(1, -1)
           
-          // Simplified inline code styling
-          const inlineCodeBg = isDarkTheme ? 'bg-gray-700' : 'bg-gray-100'
-          const inlineCodeText = isDarkTheme ? 'text-purple-300' : 'text-purple-600'
-          
           return (
             <code 
               key={index} 
-              className={`px-1.5 py-0.5 rounded font-mono border ${inlineCodeBg} ${inlineCodeText} ${getTextSize()}`}
+              className={`px-1.5 py-0.5 rounded font-mono border bg-gray-700 text-purple-300 ${getTextSize()}`}
             >
               {inlineCode}
             </code>
@@ -356,7 +344,7 @@ function MarkdownRenderer({
                 }}
               />
               {showInsights && (
-                <div className={`mb-4 p-4 rounded-lg border shadow-sm ${isDarkTheme ? 'bg-gray-800 border-gray-600' : 'bg-gray-50 border-gray-200'}`}>
+                <div className={'mb-4 p-4 rounded-lg border shadow-sm bg-gray-800 border-gray-600'}>
                   {altText}
                 </div>
               )}
@@ -368,7 +356,7 @@ function MarkdownRenderer({
         if (part.startsWith('[') && part.includes('](')) {
           const text = part.match(/\[(.*?)\]/)?.[1] || ''
           const url = part.match(/\((.*?)\)/)?.[1] || ''
-          const linkColor = isDarkTheme ? 'text-blue-400 hover:text-blue-300' : 'text-blue-600 hover:text-blue-500'
+          const linkColor = 'text-blue-400 hover:text-blue-300'
           return (
             <a 
               key={index} 
@@ -388,7 +376,7 @@ function MarkdownRenderer({
           const text = part.slice(2, -2)
           const boldWeight = style === 'compact' ? 'font-medium' : 'font-semibold'
           return (
-            <strong key={index} className={`${boldWeight} ${getFontClass()} ${getTextSize()} ${isDarkTheme ? 'text-gray-100' : 'text-gray-900'}`}>
+            <strong key={index} className={`${boldWeight} ${getFontClass()} ${getTextSize()} text-gray-100`}>
               {text}
             </strong>
           )
@@ -398,7 +386,7 @@ function MarkdownRenderer({
         if (part.startsWith('_') && part.endsWith('_')) {
           const text = part.slice(1, -1)
           return (
-            <em key={index} className={`italic ${getFontClass()} ${getTextSize()} ${isDarkTheme ? 'text-gray-200' : 'text-gray-800'}`}>
+            <em key={index} className={`italic ${getFontClass()} ${getTextSize()} text-gray-200`}>
               {text}
             </em>
           )
@@ -411,7 +399,7 @@ function MarkdownRenderer({
           
           const getTitleStyles = (level: number) => {
             const baseStyles = `font-bold leading-tight ${getFontClass()}`
-            const themeClass = isDarkTheme ? 'text-gray-100' : 'text-gray-900'
+            const themeClass = 'text-gray-100'
             const sizeClass = getTextSize()
             
             switch (level) {
@@ -450,7 +438,7 @@ function MarkdownRenderer({
           return (
             <ul key={index} className={`list-disc pl-5 ${getSpacingClass()} ${getFontClass()}`}>
               {items.map((item: string, i: number) => (
-                <li key={i} className={`${getTextSize()} ${isDarkTheme ? 'text-gray-200' : 'text-gray-800'}`}>
+                <li key={i} className={`${getTextSize()} text-gray-200`}>
                   {item.replace(/^[-*] /, '')}
                 </li>
               ))}
@@ -809,7 +797,6 @@ export function ChatMessages({
                         })()}
                         font={markdownFont}
                         size={markdownSize}
-                        theme={effectiveTheme}
                         style={markdownStyle}
                       />
                     </div>
@@ -822,7 +809,6 @@ export function ChatMessages({
                       content={message.content} 
                       font={markdownFont}
                       size={markdownSize}
-                      theme={effectiveTheme}
                       style={markdownStyle}
                     />
                     {message.isStreaming && (
