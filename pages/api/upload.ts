@@ -1,3 +1,7 @@
+/**
+ * @file This file contains the API route for handling file uploads.
+ */
+
 import type { NextApiRequest, NextApiResponse } from 'next'
 import formidable, { type Fields, type Files } from 'formidable'
 import fs from 'fs'
@@ -9,6 +13,11 @@ export const config = {
   },
 }
 
+/**
+ * Handles the file upload API request.
+ * @param req The API request.
+ * @param res The API response.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' })

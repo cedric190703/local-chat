@@ -1,12 +1,24 @@
+/**
+ * @file This file contains the LangGraph chat agent for the local chat application.
+ * It defines the agent's behavior and its interactions with the various tools.
+ */
+
 import { BaseMessage, HumanMessage, AIMessage } from "@langchain/core/messages";
 import { ChatOllama } from "@langchain/ollama";
 import { webSearchTool, webScrapeTool } from "./web-search-service";
 import { createDocumentSearchTool, createDocumentUploadTool, documentProcessor } from "./document-service";
 
+/**
+ * A chat agent that uses LangGraph to interact with the user and various tools.
+ */
 export class LangGraphChatAgent {
   private model: ChatOllama;
   private tools: Array<{ name: string; description: string; func: (...args: any[]) => Promise<string> }>;
 
+  /**
+   * Creates a new LangGraphChatAgent instance.
+   * @param modelName The name of the model to use.
+   */
   constructor(modelName: string = "llama3.2") {
     // Initialize the model
     this.model = new ChatOllama({
@@ -24,6 +36,11 @@ export class LangGraphChatAgent {
     ];
   }
 
+  /**
+   * Executes a tool if the message requires it.
+   * @param message The message to process.
+   * @returns The result of the tool execution, or an empty string if no tool was executed.
+   */
   private async executeToolIfNeeded(message: string): Promise<string> {
     // Simple tool detection and execution
     const lowerMessage = message.toLowerCase();
@@ -54,6 +71,12 @@ export class LangGraphChatAgent {
     return '';
   }
 
+  /**
+   * Processes a message and returns the response.
+   * @param message The message to process.
+   * @param conversationHistory The history of the conversation.
+   * @returns The response from the agent.
+   */
   async processMessage(message: string, conversationHistory: BaseMessage[] = []): Promise<string> {
     try {
       // First, check if we need to use tools
@@ -80,6 +103,13 @@ export class LangGraphChatAgent {
     }
   }
 
+  /**
+   * Streams a message and returns the response.
+   * @param message The message to process.
+   * @param conversationHistory The history of the conversation.
+   * @param onChunk A callback to be called with each chunk of the response.
+   * @returns The full response from the agent.
+   */
   async streamMessage(
     message: string, 
     conversationHistory: BaseMessage[] = [],
@@ -124,7 +154,12 @@ export class LangGraphChatAgent {
     }
   }
 
-  // Method to upload and process documents
+  /**
+   * Uploads a document to the agent.
+   * @param fileName The name of the file to upload.
+   * @param content The content of the file to upload.
+   * @returns A message indicating whether the upload was successful.
+   */
   async uploadDocument(fileName: string, content: string): Promise<string> {
     try {
       const chunks = await documentProcessor.processDocument(fileName, content);
@@ -135,12 +170,18 @@ export class LangGraphChatAgent {
     }
   }
 
-  // Method to get available tools
+  /**
+   * Gets a list of the available tools.
+   * @returns A list of the available tools.
+   */
   getAvailableTools(): string[] {
     return this.tools.map(tool => `${tool.name}: ${tool.description}`);
   }
 
-  // Method to change the model
+  /**
+   * Changes the model used by the agent.
+   * @param modelName The name of the model to use.
+   */
   changeModel(modelName: string) {
     this.model = new ChatOllama({
       baseUrl: "http://localhost:11434",

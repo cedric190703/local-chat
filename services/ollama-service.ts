@@ -1,9 +1,20 @@
+/**
+ * @file This file contains the Ollama service for the local chat application.
+ * It provides a wrapper around the Ollama API for interacting with local LLMs.
+ */
+
+/**
+ * Represents a response from the Ollama API.
+ */
 interface OllamaResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
 }
 
+/**
+ * Represents the progress of a model pull.
+ */
 interface PullProgress {
   status: string
   digest?: string
@@ -11,6 +22,9 @@ interface PullProgress {
   completed?: number
 }
 
+/**
+ * Represents the options for generating a response from a model.
+ */
 interface GenerateOptions {
   model: string
   prompt: string
@@ -31,6 +45,9 @@ interface GenerateOptions {
   }
 }
 
+/**
+ * Represents information about a model.
+ */
 interface ModelInfo {
   name: string
   modified_at: string
@@ -45,15 +62,23 @@ interface ModelInfo {
   }
 }
 
+/**
+ * A service for interacting with the Ollama API.
+ */
 class OllamaService {
   private baseUrl: string
 
+  /**
+   * Creates a new OllamaService instance.
+   * @param baseUrl The base URL of the Ollama API.
+   */
   constructor(baseUrl: string = 'http://localhost:11434') {
     this.baseUrl = baseUrl
   }
 
   /**
-   * Check if Ollama service is running
+   * Checks if the Ollama service is running.
+   * @returns A boolean indicating whether the service is running.
    */
   async isOllamaRunning(): Promise<boolean> {
     try {
@@ -68,7 +93,8 @@ class OllamaService {
   }
 
   /**
-   * List available models
+   * Lists the available models.
+   * @returns A list of the available models.
    */
   async listModels(): Promise<OllamaResponse<ModelInfo[]>> {
     try {
@@ -93,7 +119,9 @@ class OllamaService {
   }
 
   /**
-   * Show model information
+   * Shows information about a model.
+   * @param modelName The name of the model to get information about.
+   * @returns Information about the model.
    */
   async showModelInfo(modelName: string): Promise<OllamaResponse<ModelInfo>> {
     try {
@@ -122,7 +150,10 @@ class OllamaService {
   }
 
   /**
-   * Pull a model from the registry
+   * Pulls a model from the registry.
+   * @param modelName The name of the model to pull.
+   * @param onProgress A callback to be called with the progress of the pull.
+   * @returns A response indicating whether the pull was successful.
    */
   async pullModel(
     modelName: string,
@@ -172,7 +203,10 @@ class OllamaService {
   }
 
   /**
-   * Generate a response from a model
+   * Generates a response from a model.
+   * @param options The options for generating the response.
+   * @param onToken A callback to be called with each token of the response.
+   * @returns The response from the model.
    */
   async generate(
     options: GenerateOptions,
@@ -241,7 +275,10 @@ class OllamaService {
   }
 
   /**
-   * Create a model from a Modelfile
+   * Creates a model from a Modelfile.
+   * @param modelName The name of the model to create.
+   * @param modelfile The Modelfile to use to create the model.
+   * @returns A response indicating whether the creation was successful.
    */
   async createModel(
     modelName: string,
@@ -275,7 +312,9 @@ class OllamaService {
   }
 
   /**
-   * Delete a model
+   * Deletes a model.
+   * @param modelName The name of the model to delete.
+   * @returns A response indicating whether the deletion was successful.
    */
   async deleteModel(modelName: string): Promise<OllamaResponse> {
     try {
@@ -302,7 +341,10 @@ class OllamaService {
   }
 
   /**
-   * Copy a model
+   * Copies a model.
+   * @param sourceName The name of the model to copy.
+   * @param destinationName The name of the new model.
+   * @returns A response indicating whether the copy was successful.
    */
   async copyModel(
     sourceName: string,
@@ -335,7 +377,8 @@ class OllamaService {
   }
 
   /**
-   * Check Ollama version
+   * Gets the version of the Ollama API.
+   * @returns The version of the Ollama API.
    */
   async getVersion(): Promise<OllamaResponse<string>> {
     try {

@@ -1,3 +1,10 @@
+/**
+ * @file This file contains the type definitions for the chat application.
+ */
+
+/**
+ * Represents a chat session.
+ */
 export interface Chat {
   id: string
   title: string
@@ -14,6 +21,9 @@ export interface Chat {
   }
 }
 
+/**
+ * Represents a message in a chat session.
+ */
 export interface Message {
   id: string
   role: "system" | "user" | "assistant"
@@ -22,6 +32,9 @@ export interface Message {
   isStreaming?: boolean
 }
 
+/**
+ * Represents an uploaded file.
+ */
 export interface UploadedFile {
   id: string
   name: string
@@ -30,6 +43,9 @@ export interface UploadedFile {
   url: string
 }
 
+/**
+ * Represents a model.
+ */
 export interface Model {
   name: string
   modified_at: string

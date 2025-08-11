@@ -1,7 +1,15 @@
+/**
+ * @file This file contains the web search service for the local chat application.
+ * It provides tools for searching the web and scraping web pages.
+ */
+
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 import { load } from "cheerio";
 
+/**
+ * Represents a search result.
+ */
 interface SearchResult {
   title: string;
   url: string;
@@ -14,6 +22,9 @@ const WebSearchInputSchema = z.object({
   numResults: z.number().optional().default(5).describe("Number of results to return"),
 });
 
+/**
+ * A tool for searching the web.
+ */
 export const webSearchTool = new DynamicStructuredTool({
   name: "web_search",
   description: "Search the web for current information and return relevant results with detailed content",
@@ -67,6 +78,9 @@ const WebScrapeInputSchema = z.object({
   maxLength: z.number().optional().default(2000).describe("Maximum length of content to return"),
 });
 
+/**
+ * A tool for scraping web pages.
+ */
 export const webScrapeTool = new DynamicStructuredTool({
   name: "web_scrape",
   description: "Scrape content from a specific web page URL with enhanced extraction",
@@ -134,3 +148,11 @@ export const webScrapeTool = new DynamicStructuredTool({
     }
   },
 });
+
+// Example usage (for testing)
+// async function main() {
+//   const searchResults = await webSearchTool.invoke({ query: "latest AI news", numResults: 3 });
+//   console.log(searchResults);
+// }
+
+// main();

@@ -1,3 +1,8 @@
+/**
+ * @file This file contains the file upload hook for the local chat application.
+ * It manages the state of uploaded files and provides functions for handling file uploads.
+ */
+
 "use client"
 
 import type React from "react"
@@ -7,10 +12,18 @@ import type { UploadedFile } from "@/types/chat"
 import { documentProcessor } from "@/services/document-service"
 import { documentContextManager } from "@/services/document-context"
 
+/**
+ * A custom hook for managing file uploads.
+ * @returns The file upload state and functions for managing it.
+ */
 export function useFileUpload() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
   const [isDragOver, setIsDragOver] = useState(false)
 
+  /**
+   * Handles the file upload process.
+   * @param files The files to upload.
+   */
   const handleFileUpload = async (files: FileList | null) => {
     if (!files) return
 
@@ -138,32 +151,56 @@ Description: User uploaded image file that can be analyzed by vision-capable mod
     }
   }
 
+  /**
+   * Creates a new FormData object for a given file.
+   * @param file The file to create the FormData object for.
+   * @returns The new FormData object.
+   */
   const createFormData = (file: File) => {
     const form = new FormData()
     form.append('file', file)
     return form
   }
 
+  /**
+   * Handles the drag over event.
+   * @param e The drag event.
+   */
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(true)
   }, [])
 
+  /**
+   * Handles the drag leave event.
+   * @param e The drag event.
+   */
   const handleDragLeave = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
   }, [])
 
+  /**
+   * Handles the drop event.
+   * @param e The drop event.
+   */
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragOver(false)
     handleFileUpload(e.dataTransfer.files)
   }, [])
 
+  /**
+   * Removes a file from the list of uploaded files.
+   * @param fileId The ID of the file to remove.
+   */
   const removeFile = (fileId: string) => {
     setUploadedFiles((prev) => prev.filter((file) => file.id !== fileId))
   }
 
+  /**
+   * Clears the list of uploaded files.
+   */
   const clearFiles = () => {
     setUploadedFiles([])
   }

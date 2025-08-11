@@ -1,6 +1,15 @@
+/**
+ * @file This file contains the API route for handling web searches.
+ */
+
 import { NextApiRequest, NextApiResponse } from 'next';
 import { load } from 'cheerio';
 
+/**
+ * Handles the web search API request.
+ * @param req The API request.
+ * @param res The API response.
+ */
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
     const { query, numResults = 5 } = req.query;

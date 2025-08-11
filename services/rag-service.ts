@@ -1,3 +1,8 @@
+/**
+ * @file This file contains the RAG (Retrieval-Augmented Generation) service for the local chat application.
+ * It provides functions for retrieving relevant document chunks and running the RAG chain.
+ */
+
 import { ChatOllama } from "@langchain/ollama"
 import { RunnableSequence } from "@langchain/core/runnables"
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts"
@@ -6,17 +11,25 @@ import { documentProcessor, type DocumentChunk } from "./document-service"
 import type { BaseMessage } from "@langchain/core/messages"
 
 /**
- * Simple retrieval using in-memory chunks from DocumentProcessor.
- * In a real app, plug in a VectorStoreRetriever here.
+ * Retrieves relevant chunks from the document processor.
+ * @param query The query to retrieve relevant chunks for.
+ * @param k The number of chunks to retrieve.
+ * @returns The relevant chunks.
  */
 export async function retrieveRelevantChunks(query: string, k: number = 5): Promise<DocumentChunk[]> {
   return await documentProcessor.searchDocuments(query, k)
 }
 
+/**
+ * Represents the options for the RAG service.
+ */
 export interface RagOptions {
   modelName: string
 }
 
+/**
+ * Represents the parameters for the file analysis function.
+ */
 interface FileAnalysisParams {
   imageChunks: DocumentChunk[]
   documentChunks: DocumentChunk[]
@@ -27,7 +40,11 @@ interface FileAnalysisParams {
   modelName: string
 }
 
-// Comprehensive file analysis function
+/**
+ * Analyzes all the files and returns a comprehensive analysis.
+ * @param params The parameters for the file analysis.
+ * @returns A comprehensive analysis of the files.
+ */
 async function analyzeAllFiles(params: FileAnalysisParams): Promise<string> {
   const { imageChunks, documentChunks, binaryChunks, regularTextChunks, query, history, modelName } = params
   
@@ -157,6 +174,13 @@ Use the actual file content below to provide detailed, accurate responses.`],
   return answer
 }
 
+/**
+ * Runs the RAG chain.
+ * @param query The query to run the RAG chain with.
+ * @param history The history of the conversation.
+ * @param modelName The name of the model to use.
+ * @returns The answer from the RAG chain.
+ */
 export async function runRag(
   query: string,
   history: BaseMessage[],

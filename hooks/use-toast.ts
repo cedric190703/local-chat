@@ -1,3 +1,8 @@
+/**
+ * @file This file contains the toast hook for the local chat application.
+ * It provides a hook for displaying toasts.
+ */
+
 "use client"
 
 // Inspired by react-hot-toast library
@@ -27,6 +32,10 @@ const actionTypes = {
 
 let count = 0
 
+/**
+ * Generates a unique ID for a toast.
+ * @returns A unique ID.
+ */
 function genId() {
   count = (count + 1) % Number.MAX_SAFE_INTEGER
   return count.toString()
@@ -58,6 +67,10 @@ interface State {
 
 const toastTimeouts = new Map<string, ReturnType<typeof setTimeout>>()
 
+/**
+ * Adds a toast to the remove queue.
+ * @param toastId The ID of the toast to add to the remove queue.
+ */
 const addToRemoveQueue = (toastId: string) => {
   if (toastTimeouts.has(toastId)) {
     return
@@ -74,6 +87,12 @@ const addToRemoveQueue = (toastId: string) => {
   toastTimeouts.set(toastId, timeout)
 }
 
+/**
+ * The reducer for the toast state.
+ * @param state The current state.
+ * @param action The action to dispatch.
+ * @returns The new state.
+ */
 export const reducer = (state: State, action: Action): State => {
   switch (action.type) {
     case "ADD_TOAST":
@@ -133,6 +152,10 @@ const listeners: Array<(state: State) => void> = []
 
 let memoryState: State = { toasts: [] }
 
+/**
+ * Dispatches an action to the toast state.
+ * @param action The action to dispatch.
+ */
 function dispatch(action: Action) {
   memoryState = reducer(memoryState, action)
   listeners.forEach((listener) => {
@@ -142,6 +165,11 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
+/**
+ * Displays a toast.
+ * @param props The props for the toast.
+ * @returns The toast object.
+ */
 function toast({ ...props }: Toast) {
   const id = genId()
 
@@ -171,6 +199,10 @@ function toast({ ...props }: Toast) {
   }
 }
 
+/**
+ * A hook for displaying toasts.
+ * @returns The toast state and functions for displaying toasts.
+ */
 function useToast() {
   const [state, setState] = React.useState<State>(memoryState)
 

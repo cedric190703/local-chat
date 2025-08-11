@@ -1,22 +1,22 @@
 /**
- * Document Context Manager
- * 
- * Manages document context for per-prompt usage and global image tracking.
- * 
- * Key features:
- * - Tracks documents uploaded for each specific prompt
- * - Maintains global registry of all images for "describe all images" functionality
- * - Provides context isolation between prompts while enabling global image access
+ * @file This file contains the document context manager for the local chat application.
+ * It manages the context of documents for each prompt and tracks global images.
  */
 
 import { documentProcessor } from "./document-service";
 
+/**
+ * Represents the context of a document for a specific prompt.
+ */
 export interface DocumentContext {
   promptId: string;
   documents: string[]; // Array of document file names for this prompt
   timestamp: Date;
 }
 
+/**
+ * Represents an entry in the global image registry.
+ */
 export interface ImageRegistryEntry {
   fileName: string;
   content: string;
@@ -24,13 +24,18 @@ export interface ImageRegistryEntry {
   promptId?: string | null; // Optional: which prompt this was uploaded with
 }
 
+/**
+ * Manages the context of documents for each prompt and tracks global images.
+ */
 class DocumentContextManager {
   private promptContexts: Map<string, DocumentContext> = new Map();
   private globalImageRegistry: Map<string, ImageRegistryEntry> = new Map();
   private currentPromptId: string | null = null;
 
   /**
-   * Start a new prompt context
+   * Starts a new prompt context.
+   * @param promptId The ID of the prompt to start.
+   * @returns The ID of the new prompt context.
    */
   startNewPrompt(promptId?: string): string {
     const id = promptId || this.generatePromptId();
@@ -46,7 +51,10 @@ class DocumentContextManager {
   }
 
   /**
-   * Add a document to the current prompt context
+   * Adds a document to the current prompt context.
+   * @param fileName The name of the file to add.
+   * @param content The content of the file to add.
+   * @param isImage Whether the file is an image.
    */
   addDocumentToCurrentPrompt(fileName: string, content: string, isImage: boolean = false): void {
     if (!this.currentPromptId) {
@@ -70,7 +78,9 @@ class DocumentContextManager {
   }
 
   /**
-   * Get documents for a specific prompt
+   * Gets the documents for a specific prompt.
+   * @param promptId The ID of the prompt to get the documents for.
+   * @returns The documents for the specified prompt.
    */
   getDocumentsForPrompt(promptId: string): string[] {
     const context = this.promptContexts.get(promptId);
@@ -78,7 +88,8 @@ class DocumentContextManager {
   }
 
   /**
-   * Get all documents for the current prompt
+   * Gets all documents for the current prompt.
+   * @returns All documents for the current prompt.
    */
   getCurrentPromptDocuments(): string[] {
     if (!this.currentPromptId) return [];
@@ -86,14 +97,17 @@ class DocumentContextManager {
   }
 
   /**
-   * Get all images ever uploaded (global registry)
+   * Gets all images that have been uploaded.
+   * @returns All images that have been uploaded.
    */
   getAllImages(): ImageRegistryEntry[] {
     return Array.from(this.globalImageRegistry.values());
   }
 
   /**
-   * Check if a query is asking to describe all images
+   * Checks if a query is asking to describe all images.
+   * @param query The query to check.
+   * @returns Whether the query is asking to describe all images.
    */
   isDescribeAllImagesQuery(query: string): boolean {
     const lowerQuery = query.toLowerCase();
@@ -108,7 +122,10 @@ class DocumentContextManager {
   }
 
   /**
-   * Get document context for a query
+   * Gets the document context for a given query.
+   * @param query The query to get the document context for.
+   * @param promptId The ID of the prompt to get the document context for.
+   * @returns The document context for the given query.
    */
   async getDocumentContext(query: string, promptId?: string): Promise<string> {
     const targetPromptId = promptId ?? this.currentPromptId;
@@ -158,7 +175,7 @@ class DocumentContextManager {
   }
 
   /**
-   * Clear old prompt contexts (keep last 50)
+   * Cleans up old prompt contexts.
    */
   cleanupOldContexts(): void {
     const contexts = Array.from(this.promptContexts.entries());
@@ -173,7 +190,7 @@ class DocumentContextManager {
   }
 
   /**
-   * Clear all contexts and registries
+   * Clears all contexts and registries.
    */
   clearAll(): void {
     this.promptContexts.clear();
@@ -182,14 +199,16 @@ class DocumentContextManager {
   }
 
   /**
-   * Generate a unique prompt ID
+   * Generates a unique prompt ID.
+   * @returns A unique prompt ID.
    */
   private generatePromptId(): string {
     return `prompt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
-   * Get statistics for debugging
+   * Gets statistics about the document context manager.
+   * @returns Statistics about the document context manager.
    */
   getStats(): {
     totalPrompts: number;
