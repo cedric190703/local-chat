@@ -5,6 +5,7 @@ import type React from "react"
 import { useState, useCallback } from "react"
 import type { UploadedFile } from "@/types/chat"
 import { documentProcessor } from "@/services/document-service"
+import { documentContextManager } from "@/services/document-context"
 
 export function useFileUpload() {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([])
@@ -54,6 +55,7 @@ Size: ${(file.size / 1024).toFixed(2)} KB
 Content:
 ${text}`
           await documentProcessor.processDocument(file.name, fileInfo)
+          documentContextManager.addDocumentToCurrentPrompt(file.name, fileInfo, false)
         } else if (file.type === 'application/pdf') {
           // Handle PDFs with enhanced document processing
           try {
@@ -76,6 +78,7 @@ The document contains structured content that can be analyzed for various purpos
 
 Document ready for analysis: ${file.name}`
             await documentProcessor.processDocument(file.name, pdfInfo)
+            documentContextManager.addDocumentToCurrentPrompt(file.name, pdfInfo, false)
           } catch (pdfError) {
             console.warn('PDF processing failed, using fallback:', pdfError)
             // Enhanced fallback with better context
@@ -84,6 +87,7 @@ Type: ${file.type}
 Size: ${(file.size / 1024).toFixed(2)} KB
 Content: PDF document uploaded and available for analysis. Document processing capabilities include content extraction, structure analysis, and comprehensive document review. File is ready for detailed analysis and questioning.`
             await documentProcessor.processDocument(file.name, pdfInfo)
+            documentContextManager.addDocumentToCurrentPrompt(file.name, pdfInfo, false)
           }
         } else if (file.type.startsWith('image/')) {
           // For images, create a base64 representation and metadata for model integration
@@ -94,28 +98,32 @@ Content: PDF document uploaded and available for analysis. Document processing c
           })
           const base64Data = await base64Promise
           
-          // Store image with metadata for model integration
-          await documentProcessor.processDocument(
-            file.name, 
-            `IMAGE_FILE: ${file.name}
+          const imageContent = `IMAGE_FILE: ${file.name}
 Type: ${file.type}
 Size: ${(file.size / 1024).toFixed(2)} KB
 Base64: ${base64Data}
-Description: User uploaded image file that can be analyzed by vision-capable models.`
-          )
+Description: User uploaded image file that can be analyzed by vision-capable models.`;
+          
+          // Store image with metadata for model integration
+          await documentProcessor.processDocument(file.name, imageContent)
+          documentContextManager.addDocumentToCurrentPrompt(file.name, imageContent, true)
         } else if (file.type.startsWith('audio/') || 
                    file.type.startsWith('video/') ||
                    file.type === 'application/octet-stream') {
-          // For other binary files, store metadata and reference
-          await documentProcessor.processDocument(file.name, `BINARY_FILE: ${file.name} (${file.type || 'binary'}) - Size: ${(file.size / 1024).toFixed(2)} KB - uploaded but not processed for text search`)
+          const binaryInfo = `BINARY_FILE: ${file.name} (${file.type || 'binary'}) - Size: ${(file.size / 1024).toFixed(2)} KB - uploaded but not processed for text search`;
+          await documentProcessor.processDocument(file.name, binaryInfo)
+          documentContextManager.addDocumentToCurrentPrompt(file.name, binaryInfo, false)
         } else {
           // For unknown types, try to read as text but handle gracefully
           try {
             const text = await file.text()
             await documentProcessor.processDocument(file.name, text)
+            documentContextManager.addDocumentToCurrentPrompt(file.name, text, false)
           } catch (textError) {
             // If reading as text fails, treat as binary
-            await documentProcessor.processDocument(file.name, `File: ${file.name} (${file.type || 'unknown'}) - uploaded but could not be processed as text`)
+            const fallbackInfo = `File: ${file.name} (${file.type || 'unknown'}) - uploaded but could not be processed as text`;
+            await documentProcessor.processDocument(file.name, fallbackInfo)
+            documentContextManager.addDocumentToCurrentPrompt(file.name, fallbackInfo, false)
           }
         }
       } catch (e) {
