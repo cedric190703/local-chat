@@ -14,7 +14,8 @@ import {
   X,
   AlertCircle,
   Search,
-  Loader2
+  Loader2,
+  RefreshCw
 } from "lucide-react";
 import type { UploadedFile } from "@/types/chat";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,6 +39,7 @@ interface PromptInputProps {
   onStopGeneration?: () => void;
   selectedModel?: string;
   ollamaStatus?: 'checking' | 'connected' | 'disconnected';
+  onRefreshStatus?: () => void;
   disabled?: boolean;
 }
 
@@ -60,6 +62,7 @@ export function PromptInput({
   onStopGeneration,
   selectedModel,
   ollamaStatus = 'checking',
+  onRefreshStatus,
   disabled = false
 }: PromptInputProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -376,24 +379,40 @@ export function PromptInput({
           {selectedModel && (
             <span className="bg-muted px-2 py-1 rounded-md">Model: {selectedModel}</span>
           )}
-          {ollamaStatus === 'connected' && (
-            <span className="text-green-600 flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-green-500" />
-              Connected
-            </span>
-          )}
-          {ollamaStatus === 'disconnected' && (
-            <span className="text-red-600 flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-red-500" />
-              Disconnected
-            </span>
-          )}
-          {ollamaStatus === 'checking' && (
-            <span className="text-amber-600 flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-amber-500" />
-              Checking...
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              {ollamaStatus === 'connected' && (
+                <span className="text-green-600 flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-green-500" />
+                  Connected
+                </span>
+              )}
+              {ollamaStatus === 'disconnected' && (
+                <span className="text-red-600 flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-red-500" />
+                  Disconnected
+                </span>
+              )}
+              {ollamaStatus === 'checking' && (
+                <span className="text-amber-600 flex items-center gap-1">
+                  <span className="h-2 w-2 rounded-full bg-amber-500" />
+                  Checking...
+                </span>
+              )}
+            </div>
+            {onRefreshStatus && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onRefreshStatus}
+                disabled={ollamaStatus === 'checking'}
+                className="h-6 px-2 text-xs font-medium hover:bg-muted/50"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${ollamaStatus === 'checking' ? 'animate-spin' : ''}`} />
+                Refresh Connection
+              </Button>
+            )}
+          </div>
         </div>
         
         <div className="flex items-center gap-3">

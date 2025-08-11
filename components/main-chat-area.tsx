@@ -30,6 +30,7 @@ interface MainChatAreaProps {
   onStopGeneration?: () => void;
   selectedModel?: string;
   ollamaStatus?: 'checking' | 'connected' | 'disconnected';
+  onRefreshStatus?: () => void;
   selectedTool: string | null;
   onSelectTool: (tool: string | null) => void;
 }
@@ -57,6 +58,7 @@ export function MainChatArea({
   onStopGeneration,
   selectedModel,
   ollamaStatus = 'checking',
+  onRefreshStatus,
   selectedTool,
   onSelectTool
 }: MainChatAreaProps) {
@@ -98,6 +100,7 @@ export function MainChatArea({
             onStopGeneration={onStopGeneration}
             selectedModel={selectedModel}
             ollamaStatus={ollamaStatus}
+            onRefreshStatus={onRefreshStatus}
             disabled={ollamaStatus !== 'connected' || !selectedModel}
           />
         </div>

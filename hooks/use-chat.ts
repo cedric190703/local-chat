@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react"
 import { enhancedChatService } from "@/services/agent-service"
+import { documentContextManager } from "@/services/document-context"
 
 export interface Message {
   id: string
@@ -131,6 +132,9 @@ export function useChat(): UseChatReturn {
     async (content: string, model: string, initialResponse?: string, files?: Array<{id: string, name: string, type: string, size?: string}>) => {
       if (!content.trim() || !model) return;
 
+      // Start new prompt context for document management
+      const promptId = documentContextManager.startNewPrompt();
+
       // Stop any ongoing generation
       stopGeneration();
 
@@ -190,9 +194,25 @@ export function useChat(): UseChatReturn {
 
         let fullResponse = initialResponse || "";
 
+        // Add files to document context
+        if (files) {
+          files.forEach(file => {
+            const isImage = file.type.startsWith('image/');
+            documentContextManager.addDocumentToCurrentPrompt(file.name, '', isImage);
+          });
+        }
+
+        // Get document context for this prompt
+        const documentContext = await documentContextManager.getDocumentContext(content, promptId);
+        
+        // Prepare enhanced message with context
+        const enhancedMessage = documentContext 
+          ? `${content}\n\n${documentContext}`
+          : content;
+
         // Use the enhanced chat service with LangChain/LangGraph capabilities
         const response = await enhancedChatService.streamMessage(
-          content,
+          enhancedMessage,
           chatId || 'default',
           model,
           (chunk: string) => {
