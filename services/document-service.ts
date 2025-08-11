@@ -1,6 +1,14 @@
+/**
+ * @file This file contains the document processing service for the local chat application.
+ * It provides tools for processing, searching, and managing documents.
+ */
+
 import { DynamicStructuredTool } from "@langchain/core/tools";
 import { z } from "zod";
 
+/**
+ * Represents a chunk of a document.
+ */
 export interface DocumentChunk {
   id: string;
   content: string;
@@ -11,6 +19,9 @@ export interface DocumentChunk {
   };
 }
 
+/**
+ * A class for processing documents.
+ */
 export class DocumentProcessor {
   private documents: Map<string, DocumentChunk[]> = new Map();
   private documentIndex: Map<string, string[]> = new Map(); // Simple keyword index
@@ -19,6 +30,12 @@ export class DocumentProcessor {
     // Simplified constructor without vector embeddings for now
   }
 
+  /**
+   * Processes a document and returns the chunks.
+   * @param fileName The name of the file to process.
+   * @param content The content of the file to process.
+   * @returns The chunks of the document.
+   */
   async processDocument(fileName: string, content: string): Promise<DocumentChunk[]> {
     try {
       if (!content) {
@@ -176,6 +193,12 @@ export class DocumentProcessor {
     this.documentIndex.set(fileName, [...new Set(keywords)]);
   }
 
+  /**
+   * Searches the documents for a given query.
+   * @param query The query to search for.
+   * @param k The number of results to return.
+   * @returns The search results.
+   */
   async searchDocuments(query: string, k: number = 5): Promise<DocumentChunk[]> {
     const queryWords = query.toLowerCase()
       .replace(/[^\w\s]/g, ' ')
@@ -211,10 +234,19 @@ export class DocumentProcessor {
       .map(result => result.chunk);
   }
 
+  /**
+   * Gets a list of all the documents.
+   * @returns A list of all the documents.
+   */
   getDocumentList(): string[] {
     return Array.from(this.documents.keys());
   }
 
+  /**
+   * Removes a document.
+   * @param fileName The name of the file to remove.
+   * @returns Whether the document was removed.
+   */
   removeDocument(fileName: string): boolean {
     const removed = this.documents.delete(fileName);
     if (removed) {
@@ -229,6 +261,11 @@ const DocumentSearchInputSchema = z.object({
   maxResults: z.number().optional().default(5).describe("Maximum number of results to return"),
 });
 
+/**
+ * Creates a document search tool.
+ * @param processor The document processor to use.
+ * @returns A document search tool.
+ */
 export const createDocumentSearchTool = (processor: DocumentProcessor) => new DynamicStructuredTool({
   name: "document_search",
   description: "Search through uploaded documents to find relevant information",
@@ -260,6 +297,11 @@ const DocumentUploadInputSchema = z.object({
   content: z.string().describe("Text content of the document"),
 });
 
+/**
+ * Creates a document upload tool.
+ * @param processor The document processor to use.
+ * @returns A document upload tool.
+ */
 export const createDocumentUploadTool = (processor: DocumentProcessor) => new DynamicStructuredTool({
   name: "document_upload",
   description: "Process and index a document for future searches",
