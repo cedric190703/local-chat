@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 import { MessageSquare, X, Plus } from "lucide-react"
 import type { Chat } from "@/types/chat"
 import { cn } from "@/lib/utils"
-import { Sidebar, useSidebar } from "@/components/ui/sidebar"
+import { Sidebar } from "@/components/ui/sidebar"
 import { SettingsMenu } from "@/components/settings-menu"
 
 interface ChatSidebarProps {
@@ -29,7 +29,6 @@ export function ChatSidebar({
   theme,
   onThemeChange,
 }: ChatSidebarProps) {
-  const { isMobile } = useSidebar()
 
   return (
     <Sidebar>

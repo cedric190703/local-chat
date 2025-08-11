@@ -91,7 +91,7 @@ export default function LLMInterface() {
     try {
       const enhancementResponse = await ollamaService.generate({
         model: selectedModel,
-        prompt: `Please improve this prompt... Original prompt: """${orisginalPrompt}"""
+        prompt: `Please improve this prompt... Original prompt: """${originalPrompt}"""
         Just return the improved prompt without any additional text like correct the grammar or spelling.
         Make it more concise and clear but do not make additional comments and responds in the language of the original prompt.`,
       })
@@ -113,11 +113,6 @@ export default function LLMInterface() {
    */
   const handleSendMessage = async () => {
     if (!prompt.trim() || !selectedModel || isGenerating) return;
-
-    if (chats.length === 0 || !activeChat) {
-      const newChat = createNewChat({ model: selectedModel });
-      setActiveChat(newChat.id);
-    }
 
     setPrompt(""); // Clear the input prompt immediately
     
