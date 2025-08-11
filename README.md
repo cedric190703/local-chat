@@ -1,68 +1,84 @@
 # Local Chat
 
-This project is a user interface for a local AI Large Language Model (LLM) running with Ollama. The end goal is to explore the possibility of connecting this interface with a command-line interface (CLI) that can interact with the user's terminal.
+This project is a user interface for a local AI Large Language Model (LLM) running with Ollama. It uses Ollama for running local models and LangChain on the backend for Retrieval-Augmented Generation (RAG) and other AI-powered features.
 
-## Features
+![Interface](public/interface.png)
 
-*   **Chat Interface:** A simple and intuitive chat interface to interact with the local LLM.
-*   **File Upload:** Upload files to provide context to the LLM.
-*   **Web Search:** Perform web searches to gather information.
-*   **Dark Mode:** A dark mode theme for a better user experience.
-*   **Responsive Design:** The application is responsive and works on different screen sizes.
+## How to Set Up
 
-## Tech Stack
+To get this application running on your local machine, follow these steps:
 
-*   **Framework:** [Next.js](https://nextjs.org/)
-*   **Language:** [TypeScript](https://www.typescriptlang.org/)
-*   **Styling:** [Tailwind CSS](https://tailwindcss.com/)
-*   **UI Components:** [shadcn/ui](https://ui.shadcn.com/)
-*   **LLM:** [Ollama](https://ollama.ai/)
+1.  **Install Ollama:** Download and install Ollama from the official website: [https://ollama.ai/](https://ollama.ai/)
+2.  **Download a Model:** Open your terminal and pull a model using the following command. For example, to download the Llama 3.2 model, you would run:
 
-## Project Structure
+    ```bash
+    ollama pull llama3.2
+    ```
 
-The project is structured as follows:
+3.  **Serve Ollama:** To use Ollama as a server, run the following command in your terminal:
 
-```
-/
-├── app/              # Main application files
-├── components/       # Reusable UI components
-├── hooks/            # Custom React hooks
-├── lib/              # Utility functions
-├── pages/            # API routes
-├── public/           # Static assets
-├── services/         # Services for interacting with external APIs
-├── styles/           # Global styles
-└── types/            # TypeScript types
-```
+    ```bash
+    ollama serve
+    ```
 
-## Getting Started
+4.  **Clone the Repository:** Clone this repository to your local machine.
+5.  **Install Dependencies:** Open a terminal in the project's root directory and run:
 
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
-
-### Prerequisites
-
-*   [Node.js](https://nodejs.org/) (v22 or later)
-*   [pnpm](https://pnpm.io/)
-*   [Ollama](https://ollama.ai/)
-
-### Installing
-
-1.  Clone the repository
-2.  Install the dependencies:
     ```bash
     pnpm install
     ```
-3.  Run the development server:
+
+6.  **Run the Application:** Finally, start the development server:
+
     ```bash
     pnpm dev
     ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    The application will be available at `http://localhost:3000`.
+
+## Features
+
+### Chat with Your Local Models
+
+You can chat with any of the models you have downloaded locally with Ollama. Simply select the model you want to use from the dropdown list at the top of the chat interface.
+
+![Simple Chat](public/simple_chat.png)
+
+### Interact with Code
+
+The application supports code blocks, allowing you to easily share and discuss code with the AI.
+
+![Code Chat](public/code_chat.png)
+
+### Enhance Your Prompts
+
+The "Enhance" button helps you improve your prompts for better responses from the AI.
+
+![Enhance Prompt](public/enhance_prompt.png)
+
+### Ollama Connection Status
+
+The application indicates whether you are connected to the Ollama server. If you are not connected, you can click the "Refresh Connection" button to try to reconnect.
+
+### File and Image Uploads
+
+You can upload files and images to the chat. This feature is designed to be used with multimodal models that can understand and process visual information.
+
+### Web Search
+
+The application can search the web using the DuckDuckGo API. It then attempts to scrape the content of the search results to provide you with the most relevant information. However, this feature is not perfect and may sometimes fail to scrape the content correctly, as shown in the image below. But, as you can see, it can also work surprisingly well!
+
+![Web Search with Errors](public/websearch_chat_input.png)
+
+## Future Improvements
+
+This project is a work in progress, and there are many ways it could be improved. Here are a few ideas:
+
+*   **Use Tavily for Web Searches:** Instead of relying on DuckDuckGo and web scraping, the application could use [Tavily](https://tavily.com/), a search API designed specifically for AI applications.
+*   **Add Audio Features:** It would be great to add audio features using [Whisper.cpp](https://github.com/ggerganov/whisper.cpp) to allow for voice input and output.
+*   **Integrate MCP Tools:** The application could be extended with additional tools, as suggested by the button on the bottom of the interface.
+*   **Persistent Message History:** To keep the chat history between sessions, a persistent database could be integrated.
 
 ## Contributing
 
-Contributions are welcome! Please see the [CONTRIBUTING.md](CONTRIBUTING.md) file for more details.
-
-## Code of Conduct
-
-Please see the [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) file for more details.
+This project was created for fun and to experiment with new features as a computer science student. If you would like to contribute to the project or have ideas for improvements, feel free to open an issue or a pull request. All contributions are welcome!
