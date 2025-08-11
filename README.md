@@ -12,13 +12,12 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/pnpm-v9.5.0-yellowgreen" alt="pnpm version"/>
-  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"/>
   <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="prs welcome"/>
 </p>
 
 ## Introduction
 
-This project is a user interface for a local AI Large Language Model (LLM) running with Ollama. It uses Ollama for running local models and LangChain on the backend for Retrieval-Augmented Generation (RAG) and other AI-powered features.
+This project is a user interface for a local AI Large Language Model (LLM) running with Ollama. It uses Ollama for running local models and LangChain on the backend for Retrieval-Augmented Generation (RAG).
 
 ![Interface](public/interface.png)
 
@@ -91,10 +90,15 @@ The "Enhance" button helps you improve your prompts for better responses from th
 
 ### Web Search
 
-The application can search the web using the DuckDuckGo API. It then attempts to scrape the content of the search results to provide you with the most relevant information. However, this feature is not perfect and may sometimes fail to scrape the content correctly, as some websites are difficult to scrape. But, as you can see, it can also work surprisingly well!
+The application can search the web using the DuckDuckGo API. It then attempts to scrape the content of the search results to provide you with the most relevant information. However, this feature is not perfect and may sometimes fail to scrape the content correctly, as some websites are difficult to scrape. As you can see in the image below, there are some errors in the console which are due to scraping errors on the web search.
 
 ![Web Search Input](public/web_search_chat_input.png)
+
+But, as you can see, it can also work.
+
 ![Web Search Output](public/web_search_chat_output.png)
+
+To have better results, it would be necessary to switch to solutions with search APIs made for AIs, like Tavily.
 
 ## Future Improvements
 
