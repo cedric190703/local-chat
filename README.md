@@ -1,12 +1,45 @@
 # Local Chat
 
+<p align="center">
+  <img src="public/logo.png" alt="Local Chat Logo" width="200"/>
+</p>
+
+<h1 align="center">Local Chat</h1>
+
+<p align="center">
+  A user interface for local AI Large Language Models (LLMs) running with Ollama.
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/pnpm-v9.5.0-yellowgreen" alt="pnpm version"/>
+  <img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="license"/>
+  <img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg" alt="prs welcome"/>
+</p>
+
+## Introduction
+
 This project is a user interface for a local AI Large Language Model (LLM) running with Ollama. It uses Ollama for running local models and LangChain on the backend for Retrieval-Augmented Generation (RAG) and other AI-powered features.
 
 ![Interface](public/interface.png)
 
-## How to Set Up
+## Features
 
-To get this application running on your local machine, follow these steps:
+*   **Chat with Local Models:** Chat with any of the models you have downloaded locally with Ollama.
+*   **Code Interaction:** The application supports code blocks, allowing you to easily share and discuss code with the AI.
+*   **Prompt Enhancement:** The "Enhance" button helps you improve your prompts for better responses from the AI.
+*   **Ollama Connection Status:** The application indicates whether you are connected to the Ollama server.
+*   **File and Image Uploads:** You can upload files and images to the chat. This feature is designed to be used with multimodal models that can understand and process visual information.
+*   **Web Search:** The application can search the web using the DuckDuckGo API.
+
+## Getting Started
+
+### Prerequisites
+
+*   [Node.js](https://nodejs.org/) (v22 or later)
+*   [pnpm](https://pnpm.io/)
+*   [Ollama](https://ollama.ai/)
+
+### Installation
 
 1.  **Install Ollama:** Download and install Ollama from the official website: [https://ollama.ai/](https://ollama.ai/)
 2.  **Download a Model:** Open your terminal and pull a model using the following command. For example, to download the Llama 3.2 model, you would run:
@@ -36,7 +69,7 @@ To get this application running on your local machine, follow these steps:
 
     The application will be available at `http://localhost:3000`.
 
-## Features
+## Usage
 
 ### Chat with Your Local Models
 
@@ -54,21 +87,14 @@ The application supports code blocks, allowing you to easily share and discuss c
 
 The "Enhance" button helps you improve your prompts for better responses from the AI.
 
-![Enhance Prompt](public/enhance_prompt.png)
-
-### Ollama Connection Status
-
-The application indicates whether you are connected to the Ollama server. If you are not connected, you can click the "Refresh Connection" button to try to reconnect.
-
-### File and Image Uploads
-
-You can upload files and images to the chat. This feature is designed to be used with multimodal models that can understand and process visual information.
+![Enhance Prompt](public/enhance_chat.png)
 
 ### Web Search
 
-The application can search the web using the DuckDuckGo API. It then attempts to scrape the content of the search results to provide you with the most relevant information. However, this feature is not perfect and may sometimes fail to scrape the content correctly, as shown in the image below. But, as you can see, it can also work surprisingly well!
+The application can search the web using the DuckDuckGo API. It then attempts to scrape the content of the search results to provide you with the most relevant information. However, this feature is not perfect and may sometimes fail to scrape the content correctly, as some websites are difficult to scrape. But, as you can see, it can also work surprisingly well!
 
-![Web Search with Errors](public/websearch_chat_input.png)
+![Web Search Input](public/web_search_chat_input.png)
+![Web Search Output](public/web_search_chat_output.png)
 
 ## Future Improvements
 
@@ -82,3 +108,11 @@ This project is a work in progress, and there are many ways it could be improved
 ## Contributing
 
 This project was created for fun and to experiment with new features as a computer science student. If you would like to contribute to the project or have ideas for improvements, feel free to open an issue or a pull request. All contributions are welcome!
+
+## Acknowledgments
+
+*   [Ollama](https://ollama.ai/) for making it easy to run LLMs locally.
+*   [LangChain](https://www.langchain.com/) for providing the tools to build AI-powered applications.
+*   [Next.js](https://nextjs.org/) for the amazing React framework.
+*   [Tailwind CSS](https://tailwindcss.com/) for the utility-first CSS framework.
+*   [shadcn/ui](https://ui.shadcn.com/) for the beautiful UI components.
