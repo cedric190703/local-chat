@@ -279,29 +279,6 @@ export function PromptInput({
 
         {/* Action Buttons */}
         <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
-          {/* Recording Button */}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size="sm"
-                variant={isRecording ? "default" : "ghost"}
-                className="h-8 w-8 p-0 rounded-lg"
-                onClick={onToggleRecording}
-                disabled={isInputDisabled}
-                aria-label={isRecording ? 'Stop recording' : 'Start recording'}
-              >
-                {isRecording ? (
-                  <Mic className="h-4 w-4" />
-                ) : (
-                  <MicOff className="h-4 w-4" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="top">
-              {isRecording ? 'Stop recording' : 'Start voice recording'}
-            </TooltipContent>
-          </Tooltip>
-
           {/* Upload Button */}
           <Tooltip>
             <TooltipTrigger asChild>

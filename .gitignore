@@ -19,6 +19,13 @@ yarn-error.log*
 # env files
 .env*
 
+# TypeScript build cache
+tsconfig.tsbuildinfo
+
+# uploads directory (user files)
+/uploads/*
+!/uploads/.gitkeep
+
 # vercel
 .vercel
 
